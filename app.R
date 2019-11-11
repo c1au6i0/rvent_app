@@ -1,31 +1,29 @@
-#
-# This is a Shiny web application. You can run the application by clicking
-# the 'Run App' button above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
-
 library(shiny)
 library(rvent)
 library(shinyFiles)
+library(DT)
 # library(shinyWidgets)
 
-ui <- fluidPage( # Application title
+ui <- fluidPage( # Ciccio Ciccio
     fluidRow(
-        column(3,
+        column(4,
                shinyDirButton("dir", "Input directory", "Upload"),
-        verbatimTextOutput("import_msg", placeholder = TRUE)
+               verbatimTextOutput("import_msg", placeholder = TRUE)
         )
     ),
     fluidRow(
-        column(3, 
-               selectInput("com_sub", 
+        column(4,
+               wellPanel(
+                    selectInput("com_sub", 
                            label = "",
                            choices = "",
-                           multiple = TRUE)
-               
+                           multiple = TRUE),
+                      actionButton("OK_com", label = "OK")
+                    ),
+                    conditionalPanel(
+                        condition = "output.tsd_s != 0",
+                        DTOutput('tsd_s')
+                    )
         )
     )
 )
@@ -42,6 +40,8 @@ server <- function(input, output, session) {
     dir <- reactive(input$dir)
     
     c_comments <- reactiveValues()
+    
+    vent <- reactiveVal()
       
     # get the iox files
     observeEvent(ignoreNULL = TRUE,
@@ -62,20 +62,44 @@ server <- function(input, output, session) {
                          output$import_msg <- renderText("Files imported!")
                          choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
                                                          .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
-                         c_comments$tsd_s <- choose_comments$subj_drug_dose_unit
-                         c_comments$lab <- "Click the menu to select drug injections"
+                         
+                         vent(all_data$vent)
+                         c_comments$tsd_s <- choose_comments
+                         c_comments$lab <- "Click the menu to select drug injections and then press OK"
                      } else {
                          output$import_msg <- renderText(all_data)
                      }
                      
                   }
     )
-# https://shiny.rstudio.com/reference/shiny/1.2.0/updateSelectInput.html
+      # select comments with subject and drug
       observe({ 
-                updateSelectInput(session, "com_sub", label = c_comments$lab, choices = c_comments$tsd_s)
+                updateSelectInput(session, "com_sub", label = c_comments$lab, choices = c_comments$tsd_s$subj_drug_dose_unit)
       }
     )
+      
+      # filter comments
+      observeEvent(ignoreNULL = TRUE,
+                   eventExpr = {
+                     input$OK_com
+                   },
+                   handlerExpr = {
+                     ## ADD IF NULL
+                     tsd_s <- c_comments$tsd_s[c_comments$tsd_s$subj_drug_dose_unit %in% input$com_sub, ]
+                     tsd_s <- tidyr::separate(tsd_s, 
+                                              .data$subj_drug_dose_unit, 
+                                              c("subj", "drug", "dose", "unit"), 
+                                              fill = "right", extra = "merge")
+                     tsd_s[tsd_s == "NA"] <- NA
+                     
+                     if (sum(is.na(tsd_s)) > 0) {
+                       output$tsd_s <-  renderDT(tsd_s, selection = 'none', server = F, editable = T)
+                     }
+                   }
+      )
 }
+# https://shiny.rstudio.com/reference/shiny/1.0.0/insertUI.html
+# https://stackoverflow.com/questions/41710455/shiny-conditionalpanel-set-condition-as-output-from-server
 
 # Run the application
 shinyApp(ui = ui, server = server)
