@@ -4,16 +4,23 @@ library(shinyFiles)
 library(DT)
 # library(shinyWidgets)
 
-ui <- fluidPage( # Ciccio Ciccio
-    fluidRow(
-        column(4,
-               shinyDirButton("dir", "Input directory", "Upload"),
-               verbatimTextOutput("import_msg", placeholder = TRUE)
-        )
-    ),
-    fluidRow(
-        column(4,
+ui <- fluidPage( # Ciccio CicciofluidPage(
+  # tags$head(tags$style(
+  #   HTML('
+  #        #sidebar {
+  #           background-color: steelblue;
+  #       }
+  # 
+  #       body, label, input, button, select { 
+  #         font-family: "Arial";
+  #       }')
+  # )),
+    
+  sidebarPanel(width = 5,
+              verbatimTextOutput("import_msg", placeholder = TRUE),
+
                wellPanel(
+                    shinyDirButton("dir", "Input directory", "Upload"),
                     selectInput("com_sub", 
                            label = "",
                            choices = "",
@@ -21,28 +28,35 @@ ui <- fluidPage( # Ciccio Ciccio
                       actionButton("OK_com", label = "OK")
                     ),
                     conditionalPanel(
-                        condition = "output.tsd_s != 0",
-                        DTOutput('tsd_s')
+                        condition = "output.hide == false",
+                        DTOutput('tsd_sf')
                     )
-        )
-    )
+              )
 )
- 
 
+#----------------------------------------------------------------------
 server <- function(input, output, session) {
     shinyDirChoose(
         input,
         'dir',
         roots = c(home = '~'),
-        filetypes = c('', 'txt', 'bigWig', "tsv", "csv", "bw")
+        filetypes = c("txt", "tsv", "csv")
     )
-    
     dir <- reactive(input$dir)
-    
     c_comments <- reactiveValues()
-    
     vent <- reactiveVal()
+    output$hide <- reactive({
+      sum(is.na(c_comments$tsd_sf)) == 0
+    })
+
+   # eventReactive(ignoreNULL = TRUE,
+   #               sum(is.na(c_comments$tsd_sf)) > 0,
+   #                output$import_msg <- renderText("Please, fill up missing values!")
+   #  )
+   #    
       
+    outputOptions(output, "hide", suspendWhenHidden = FALSE)
+
     # get the iox files
     observeEvent(ignoreNULL = TRUE,
                  eventExpr = {
@@ -65,7 +79,7 @@ server <- function(input, output, session) {
                          
                          vent(all_data$vent)
                          c_comments$tsd_s <- choose_comments
-                         c_comments$lab <- "Click the menu to select drug injections and then press OK"
+                         # c_comments$lab <- "Click the menu to select drug injections and then press OK"
                      } else {
                          output$import_msg <- renderText(all_data)
                      }
@@ -78,28 +92,47 @@ server <- function(input, output, session) {
       }
     )
       
-      # filter comments
+      #  input$com_sub is use to filter tsd_s
+      # filter comments: are there NA or not?
       observeEvent(ignoreNULL = TRUE,
                    eventExpr = {
                      input$OK_com
                    },
                    handlerExpr = {
-                     ## ADD IF NULL
-                     tsd_s <- c_comments$tsd_s[c_comments$tsd_s$subj_drug_dose_unit %in% input$com_sub, ]
-                     tsd_s <- tidyr::separate(tsd_s, 
-                                              .data$subj_drug_dose_unit, 
-                                              c("subj", "drug", "dose", "unit"), 
-                                              fill = "right", extra = "merge")
-                     tsd_s[tsd_s == "NA"] <- NA
-                     
-                     if (sum(is.na(tsd_s)) > 0) {
-                       output$tsd_s <-  renderDT(tsd_s, selection = 'none', server = F, editable = T)
+                    if(is.null(input$com_sub)) {
+                          output$import_msg <- renderText("Please select something!")
+                    } else {
+                         tsd_sf <- c_comments$tsd_s[c_comments$tsd_s$subj_drug_dose_unit %in% input$com_sub, ]
+                         tsd_sf <- tidyr::separate(tsd_sf,
+                                                  subj_drug_dose_unit,
+                                                  c("subj", "drug", "dose", "unit"),
+                                                  fill = "right", extra = "merge")
+                         tsd_sf[tsd_sf == "NA"] <- NA
+                         c_comments$tsd_sf <- tsd_sf
+                         output$tsd_sf <-  renderDT(tsd_sf, selection = 'none', server = F, editable = T)
                      }
                    }
       )
-}
-# https://shiny.rstudio.com/reference/shiny/1.0.0/insertUI.html
-# https://stackoverflow.com/questions/41710455/shiny-conditionalpanel-set-condition-as-output-from-server
+}     
+      # observeEvent(input$tsd_s_cell_edit,
+      #              handlerExpr = {
+      #                    tsd_sf <- as.data.frame(c_comments$tsd_sf)
+      #                    info = input$tsd_s_cell_edit
+      #                    str(info)
+      #                    i = info$row
+      #                    j = info$col
+      #                    v = info$value
+      #                    
+      #                    tsd_s[i, j] <- DT::coerceValue(v, tsd_s[i, j])
+      #                    browser()
+      #                    if(sum(is.na(tsd_sf)) == 0){
+      #                      # output$ciao_msg <- renderText("bubu")
+      #                    }
+      #                   
+      #              }
+      #   
+      # )
+
 
 # Run the application
 shinyApp(ui = ui, server = server)
