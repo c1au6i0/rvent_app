@@ -2,7 +2,7 @@ library(shiny)
 library(rvent)
 library(shinyFiles)
 library(DT)
-# library(shinyWidgets)
+library(shinyWidgets)
 
 ui <- fluidPage( # Ciccio CicciofluidPage(
   # tags$head(tags$style(
@@ -17,27 +17,56 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
   # )),
   tags$head(tags$style("#display_msg{overflow-y:scroll;}")),
       
-  sidebarPanel(width = 5,
-              verbatimTextOutput("display_msg", placeholder = TRUE),
-
-                    shinyDirButton("dir", "Input directory", "Upload"),
+  sidebarLayout(
+        sidebarPanel(width = 5,
+                    verbatimTextOutput("display_msg", placeholder = TRUE),
+      
+                          shinyDirButton("dir", "Input directory", "Upload"),
+                          
+                          conditionalPanel(
+                              condition = "output.hideokb",
+                              selectInput("com_sub", 
+                                        label = "",
+                                        choices = "",
+                                        multiple = TRUE)
+                          ),
+                          conditionalPanel(
+                              condition = "output.hideokb",
+                              actionButton("OK_com", label = "OK")
+                          ),
                     
-                    conditionalPanel(
-                        condition = "output.hideokb",
-                        selectInput("com_sub", 
-                                  label = "",
-                                  choices = "",
-                                  multiple = TRUE)
-                    ),
-                    conditionalPanel(
-                        condition = "output.hideokb",
-                        actionButton("OK_com", label = "OK")
-                    ),
-              
-                    conditionalPanel(
-                        condition = "output.hidedt == false",
-                        DTOutput('tsd_sf')
+                          conditionalPanel(
+                              condition = "output.hidedt == false",
+                              DTOutput('tsd_sf')
+                          ) ,
+                          conditionalPanel(
+                                condition = "output.hidestat",
+                                checkboxGroupButtons(
+                                  inputId = "vent_stats",
+                                  label = "Stats",
+                                  choices = c("mean",
+                                            "median",
+                                            "n",
+                                            "sd"))
+                          ),
+                          conditionalPanel(
+                              condition = "output.hidestat",
+                              numericInput("bin", 
+                                         label = "bin duration (min)", value = 1),
+                          ),
+                         conditionalPanel(
+                              condition = "output.hidestat",
+                              numericInput("baseline", 
+                                         label = "baseline duration (min)", value = 1),
+                          ),
+                        conditionalPanel(
+                              condition = "output.hidestat",
+                              actionButton("summarize", label = "make summary")
                     )
+                          
+                    
+        ),
+    mainPanel()
   )
 )
 
@@ -49,13 +78,18 @@ server <- function(input, output, session) {
         roots = c(home = '~'),
         filetypes = c("txt", "tsv", "csv")
     )
+    
+    output$display_msg <- renderText("Choose a foder that contains iox files, Renata!") 
+    
+    # reactive val-----------------------
     dir <- reactive(input$dir)
     c_comments <- reactiveValues()
-    # p_hide$okb, p_hide$DT
+    
+    # p_hide$okb, p_hide$DT, p_hide$stat
     p_hide <- reactiveValues()
     vent <- reactiveVal()
     
-    # ok
+    # ok and choose comments
     output$hideokb <- reactive({
       p_hide$okb
     })
@@ -64,9 +98,14 @@ server <- function(input, output, session) {
     output$hidedt <- reactive({
         is.na(p_hide$DT)
     })
+    
+    # get the stats and baseline bin
+    output$hidestat <- reactive({
+      p_hide$stat
+    })
 
-    output$display_msg <- renderText("Choose a foder that contains iox files, Renata!") 
-      
+  
+    outputOptions(output, "hidestat", suspendWhenHidden = FALSE)
     outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
     outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
     
@@ -124,7 +163,7 @@ server <- function(input, output, session) {
                                                   fill = "right", extra = "merge")
                          tsd_sf[tsd_sf == "NA"] <- NA
                          c_comments$tsd_sf <- tsd_sf
-                         
+                         # ADD HERE IF THERE ARE NOT NA TO GO TO THE NEXT
                          if (sum(is.na(c_comments$tsd_sf)) > 0) {
                          output$tsd_sf <-  renderDT(tsd_sf, selection = 'none', server = F, editable = T)
                          output$display_msg <- renderText("Please, fill up missing values!")
@@ -136,14 +175,27 @@ server <- function(input, output, session) {
                    }
       )
   
-      # https://github.com/rstudio/DT/pull/480
+      # edit table with comments
       observeEvent(input$tsd_sf_cell_edit,
                         handlerExpr = {
                           c_comments$tsd_sf[input$tsd_sf_cell_edit$row,input$tsd_sf_cell_edit$col] <<- input$tsd_sf_cell_edit$value
-                          browser()
+                          if(sum(is.na(c_comments$tsd_sf)) == 0){
+                            p_hide$stat <- 1
+                          }
                          }
 
        )
+      
+      # table with comments edited: slide and checkbox
+      observeEvent(
+        eventExpr = {
+          p_hide$stat
+        },
+        handlerExpr = {
+          output$display_msg <- renderText("ciao")
+        }
+
+      )
 
 }   
 
