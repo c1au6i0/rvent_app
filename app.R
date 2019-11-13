@@ -17,7 +17,7 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
   # )),
     
   sidebarPanel(width = 5,
-              verbatimTextOutput("import_msg", placeholder = TRUE),
+              verbatimTextOutput("display_msg", placeholder = TRUE),
 
                wellPanel(
                     shinyDirButton("dir", "Input directory", "Upload"),
@@ -34,7 +34,7 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
               )
 )
 
-#----------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
     shinyDirChoose(
         input,
@@ -45,15 +45,12 @@ server <- function(input, output, session) {
     dir <- reactive(input$dir)
     c_comments <- reactiveValues()
     vent <- reactiveVal()
+
     output$hide <- reactive({
-      sum(is.na(c_comments$tsd_sf)) == 0
+        is.na(c_comments$hide)
     })
 
-   # eventReactive(ignoreNULL = TRUE,
-   #               sum(is.na(c_comments$tsd_sf)) > 0,
-   #                output$import_msg <- renderText("Please, fill up missing values!")
-   #  )
-   #    
+    output$display_msg <- renderText("Choose a foder, Francesca!") 
       
     outputOptions(output, "hide", suspendWhenHidden = FALSE)
 
@@ -73,7 +70,7 @@ server <- function(input, output, session) {
                          error = function(c) conditionMessage(c)
                          )
                      if (is.list(all_data)) {
-                         output$import_msg <- renderText("Files imported!")
+                         output$display_msg <- renderText("Files imported! Now indentify drug injections!")
                          choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
                                                          .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
                          
@@ -81,7 +78,7 @@ server <- function(input, output, session) {
                          c_comments$tsd_s <- choose_comments
                          # c_comments$lab <- "Click the menu to select drug injections and then press OK"
                      } else {
-                         output$import_msg <- renderText(all_data)
+                         output$display_msg <- renderText(all_data)
                      }
                      
                   }
@@ -100,7 +97,8 @@ server <- function(input, output, session) {
                    },
                    handlerExpr = {
                     if(is.null(input$com_sub)) {
-                          output$import_msg <- renderText("Please select something!")
+                          output$display_msg <- renderText("Please select something!")
+                          c_comments$hide <- NA
                     } else {
                          tsd_sf <- c_comments$tsd_s[c_comments$tsd_s$subj_drug_dose_unit %in% input$com_sub, ]
                          tsd_sf <- tidyr::separate(tsd_sf,
@@ -109,30 +107,29 @@ server <- function(input, output, session) {
                                                   fill = "right", extra = "merge")
                          tsd_sf[tsd_sf == "NA"] <- NA
                          c_comments$tsd_sf <- tsd_sf
+                         
+                         if (sum(is.na(c_comments$tsd_sf)) > 0) {
                          output$tsd_sf <-  renderDT(tsd_sf, selection = 'none', server = F, editable = T)
+                         output$display_msg <- renderText("Please, fill up missing values!")
+                         c_comments$hide <- 1
+                         } else {
+                         c_comments$hide <- NA
+                         }
                      }
                    }
       )
-}     
-      # observeEvent(input$tsd_s_cell_edit,
+  
+      # https://github.com/rstudio/DT/pull/480
+      # observeEvent(input$tsd_sf_cell_edit,
       #              handlerExpr = {
-      #                    tsd_sf <- as.data.frame(c_comments$tsd_sf)
-      #                    info = input$tsd_s_cell_edit
-      #                    str(info)
-      #                    i = info$row
-      #                    j = info$col
-      #                    v = info$value
-      #                    
-      #                    tsd_s[i, j] <- DT::coerceValue(v, tsd_s[i, j])
-      #                    browser()
-      #                    if(sum(is.na(tsd_sf)) == 0){
-      #                      # output$ciao_msg <- renderText("bubu")
+      # 
       #                    }
-      #                   
-      #              }
-      #   
+      # 
+      #              
+      # 
       # )
 
+}   
 
 # Run the application
 shinyApp(ui = ui, server = server)
