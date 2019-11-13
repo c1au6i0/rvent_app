@@ -5,16 +5,7 @@ library(DT)
 library(shinyWidgets)
 
 ui <- fluidPage( # 
-  # tags$head(tags$style(
-  #   HTML('
-  #        #sidebar {
-  #           background-color: steelblue;
-  #       }
-  # 
-  #       body, label, input, button, select { 
-  #         font-family: "Arial";
-  #       }')
-  # )),
+
 # https://stackoverflow.com/questions/36709441/how-to-display-widgets-inline-in-shiny
 # https://community.rstudio.com/t/verbatimtextoutput-sizing-and-scrollable/1193
 # https://stackoverflow.com/questions/44112000/move-r-shiny-shownotification-to-center-of-screen
@@ -25,11 +16,21 @@ ui <- fluidPage( #
     HTML('
     #display_msg {
         background: white;
+        font-size: 14px;
+        font-family: "Helvetica Neue",Helvetica,sans-serif;
         }
     #summarized_dat {
-        font-size: 12px
+        font-size: 12px;
     } 
-    
+    .centerAlign{
+          margin : auto;
+          }"
+    }
+    #summarize {
+        font-weight: bold;
+        background: LightGreen;
+    }
+
          
          ')
     )),
@@ -37,9 +38,9 @@ ui <- fluidPage( #
   sidebarLayout(
         sidebarPanel(width = 6,
                     verbatimTextOutput("display_msg", placeholder = TRUE),
-      
+
                           shinyDirButton("dir", "Input directory", "Upload"),
-                          
+                    
                           conditionalPanel(
                               condition = "output.hideokb",
                               selectInput("com_sub", 
@@ -47,9 +48,10 @@ ui <- fluidPage( #
                                         choices = "",
                                         multiple = TRUE)
                           ),
+      
                           conditionalPanel(
                               condition = "output.hideokb",
-                              actionButton("OK_com", label = "OK")
+                              actionButton("OK_com", label = "OK"), class = "centerAlign"
                           ),
                        br(),
                        br(),
@@ -64,29 +66,32 @@ ui <- fluidPage( #
                         br(),
                         br(),
                         br(),
-                          conditionalPanel(
-                                condition = "output.hidestat",
-                                checkboxGroupButtons(
-                                  inputId = "vent_stat",
-                                  label = "Stats",
-                                  choices = c("mean",
+      div(style="display: inline-block;vertical-align:top;", 
+                            conditionalPanel(
+                                  condition = "output.hidestat",
+                                  checkboxGroupButtons(
+                                    inputId = "vent_stat",
+                                    label = "Stats",
+                                    choices = c("mean",
                                             "median",
                                             "n",
                                             "sd"))
-                          ),
-                          conditionalPanel(
-                              condition = "output.hidestat",
-                              numericInput("bin", 
+                          )),
+      div(style="display: inline-block;vertical-align:top;", 
+                            conditionalPanel(
+                                condition = "output.hidestat",
+                                numericInput("bin", 
                                          label = "bin (min)", value = 1, min = 1, width = '100px'),
-                          ),
-                         conditionalPanel(
+                          )),
+      div(style="display: inline-block;vertical-align:top;", 
+                          conditionalPanel(
                               condition = "output.hidestat",
                               numericInput("baseline", 
                                          label = "baseline (min)", value = 30, min = 1, width = '100px'),
-                          ),
+                          )),
                         conditionalPanel(
                               condition = "output.hidestat",
-                              actionButton("summarize", label = "make summary")
+                              actionButton("summarize", label = "visualize and save summary", width = "100%")
                     )
                           
                     
@@ -244,7 +249,7 @@ server <- function(input, output, session) {
                                                editable = F,
                                                fillContainer = FALSE,
                                                options = list(
-                                                   pageLength = 17,
+                                                   pageLength = 12,
                                                    autoWidth = TRUE
                                                )
             )
