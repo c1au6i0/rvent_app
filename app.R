@@ -4,7 +4,7 @@ library(shinyFiles)
 library(DT)
 library(shinyWidgets)
 
-ui <- fluidPage( # Ciccio CicciofluidPage(
+ui <- fluidPage( # 
   # tags$head(tags$style(
   #   HTML('
   #        #sidebar {
@@ -15,10 +15,27 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
   #         font-family: "Arial";
   #       }')
   # )),
-  tags$head(tags$style("#display_msg{overflow-y:scroll;}")),
+# https://stackoverflow.com/questions/36709441/how-to-display-widgets-inline-in-shiny
+# https://community.rstudio.com/t/verbatimtextoutput-sizing-and-scrollable/1193
+# https://stackoverflow.com/questions/44112000/move-r-shiny-shownotification-to-center-of-screen
+  
+# https://shiny.rstudio.com/articles/notifications.html
+  
+  tags$head(tags$style(
+    HTML('
+    #display_msg {
+        background: white;
+        }
+    #summarized_dat {
+        font-size: 12px
+    } 
+    
+         
+         ')
+    )),
       
   sidebarLayout(
-        sidebarPanel(width = 5,
+        sidebarPanel(width = 6,
                     verbatimTextOutput("display_msg", placeholder = TRUE),
       
                           shinyDirButton("dir", "Input directory", "Upload"),
@@ -34,15 +51,23 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
                               condition = "output.hideokb",
                               actionButton("OK_com", label = "OK")
                           ),
+                       br(),
+                       br(),
+                       br(),
+                       br(),
                     
                           conditionalPanel(
                               condition = "output.hidedt == false",
                               DTOutput('tsd_sf')
                           ) ,
+                        br(),
+                        br(),
+                        br(),
+                        br(),
                           conditionalPanel(
                                 condition = "output.hidestat",
                                 checkboxGroupButtons(
-                                  inputId = "vent_stats",
+                                  inputId = "vent_stat",
                                   label = "Stats",
                                   choices = c("mean",
                                             "median",
@@ -52,12 +77,12 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
                           conditionalPanel(
                               condition = "output.hidestat",
                               numericInput("bin", 
-                                         label = "bin duration (min)", value = 1),
+                                         label = "bin (min)", value = 1, min = 1, width = '100px'),
                           ),
                          conditionalPanel(
                               condition = "output.hidestat",
                               numericInput("baseline", 
-                                         label = "baseline duration (min)", value = 1),
+                                         label = "baseline (min)", value = 30, min = 1, width = '100px'),
                           ),
                         conditionalPanel(
                               condition = "output.hidestat",
@@ -66,7 +91,9 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
                           
                     
         ),
-    mainPanel()
+    mainPanel( width = 6,
+      DTOutput('summarized_dat'),
+    )
   )
 )
 
@@ -82,6 +109,7 @@ server <- function(input, output, session) {
     output$display_msg <- renderText("Choose a foder that contains iox files, Renata!") 
     
     # reactive val-----------------------
+    dpath <- reactiveVal()
     dir <- reactive(input$dir)
     c_comments <- reactiveValues()
     
@@ -104,6 +132,7 @@ server <- function(input, output, session) {
       p_hide$stat
     })
 
+    summarized_dat <- reactiveVal()
   
     outputOptions(output, "hidestat", suspendWhenHidden = FALSE)
     outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
@@ -120,6 +149,8 @@ server <- function(input, output, session) {
                      home <- normalizePath("~")
                      datapath <-
                          file.path(home, paste(unlist(dir()$path[-1]), collapse = .Platform$file.sep))
+                     
+                     dpath(datapath)
                      
                      all_data <- tryCatch(
                          get_iox(iox_folder = datapath, inter = FALSE, baseline = 30),
@@ -163,13 +194,13 @@ server <- function(input, output, session) {
                                                   fill = "right", extra = "merge")
                          tsd_sf[tsd_sf == "NA"] <- NA
                          c_comments$tsd_sf <- tsd_sf
-                         # ADD HERE IF THERE ARE NOT NA TO GO TO THE NEXT
                          if (sum(is.na(c_comments$tsd_sf)) > 0) {
                          output$tsd_sf <-  renderDT(tsd_sf, selection = 'none', server = F, editable = T)
                          output$display_msg <- renderText("Please, fill up missing values!")
                          p_hide$DT <- 1
                          } else {
                          p_hide$DT <- NA
+                         p_hide$stat <- 1
                          }
                      }
                    }
@@ -189,10 +220,35 @@ server <- function(input, output, session) {
       # table with comments edited: slide and checkbox
       observeEvent(
         eventExpr = {
-          p_hide$stat
+          input$summarize
         },
         handlerExpr = {
-          output$display_msg <- renderText("ciao")
+          if(is.null(input$vent_stat)) {
+            output$display_msg <- renderText("Choose a stat")
+          } else {
+            vent_jn <- normalizetime_vent(dat = vent(),
+                                          tsd_s = c_comments$tsd_sf, 
+                                          tofill = NULL,
+                                          baseline = input$baseline)
+
+            vent_all <- summarize_vent(vent_jn, inter = FALSE, baseline = input$baseline, bin = input$bin, form = input$vent_stat)
+            
+            summarized_dat(vent_all)
+
+            file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
+            file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+            writexl::write_xlsx(vent_all$dat_fs, file_path)
+            output$summarized_dat <-  renderDT(vent_all$dat_sml, 
+                                               selection = 'none', 
+                                               server = F, 
+                                               editable = F,
+                                               fillContainer = FALSE,
+                                               options = list(
+                                                   pageLength = 17,
+                                                   autoWidth = TRUE
+                                               )
+            )
+          }
         }
 
       )
