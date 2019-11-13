@@ -15,23 +15,30 @@ ui <- fluidPage( # Ciccio CicciofluidPage(
   #         font-family: "Arial";
   #       }')
   # )),
-    
+  tags$head(tags$style("#display_msg{overflow-y:scroll;}")),
+      
   sidebarPanel(width = 5,
               verbatimTextOutput("display_msg", placeholder = TRUE),
 
-               wellPanel(
                     shinyDirButton("dir", "Input directory", "Upload"),
-                    selectInput("com_sub", 
-                           label = "",
-                           choices = "",
-                           multiple = TRUE),
-                      actionButton("OK_com", label = "OK")
+                    
+                    conditionalPanel(
+                        condition = "output.hideokb",
+                        selectInput("com_sub", 
+                                  label = "",
+                                  choices = "",
+                                  multiple = TRUE)
                     ),
                     conditionalPanel(
-                        condition = "output.hide == false",
+                        condition = "output.hideokb",
+                        actionButton("OK_com", label = "OK")
+                    ),
+              
+                    conditionalPanel(
+                        condition = "output.hidedt == false",
                         DTOutput('tsd_sf')
                     )
-              )
+  )
 )
 
 #----------------------------------------------------------------------------------------------------
@@ -44,16 +51,26 @@ server <- function(input, output, session) {
     )
     dir <- reactive(input$dir)
     c_comments <- reactiveValues()
+    # p_hide$okb, p_hide$DT
+    p_hide <- reactiveValues()
     vent <- reactiveVal()
-
-    output$hide <- reactive({
-        is.na(c_comments$hide)
+    
+    # ok
+    output$hideokb <- reactive({
+      p_hide$okb
+    })
+    
+    # DT-table
+    output$hidedt <- reactive({
+        is.na(p_hide$DT)
     })
 
-    output$display_msg <- renderText("Choose a foder, Francesca!") 
+    output$display_msg <- renderText("Choose a foder that contains iox files, Renata!") 
       
-    outputOptions(output, "hide", suspendWhenHidden = FALSE)
-
+    outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
+    outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
+    
+    
     # get the iox files
     observeEvent(ignoreNULL = TRUE,
                  eventExpr = {
@@ -70,13 +87,13 @@ server <- function(input, output, session) {
                          error = function(c) conditionMessage(c)
                          )
                      if (is.list(all_data)) {
-                         output$display_msg <- renderText("Files imported! Now indentify drug injections!")
+                         output$display_msg <- renderText("Click on the menu and indentify drug injections!")
+                         p_hide$okb <- 1
                          choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
                                                          .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
                          
                          vent(all_data$vent)
                          c_comments$tsd_s <- choose_comments
-                         # c_comments$lab <- "Click the menu to select drug injections and then press OK"
                      } else {
                          output$display_msg <- renderText(all_data)
                      }
@@ -98,7 +115,7 @@ server <- function(input, output, session) {
                    handlerExpr = {
                     if(is.null(input$com_sub)) {
                           output$display_msg <- renderText("Please select something!")
-                          c_comments$hide <- NA
+                          p_hide$DT <- NA
                     } else {
                          tsd_sf <- c_comments$tsd_s[c_comments$tsd_s$subj_drug_dose_unit %in% input$com_sub, ]
                          tsd_sf <- tidyr::separate(tsd_sf,
@@ -111,23 +128,22 @@ server <- function(input, output, session) {
                          if (sum(is.na(c_comments$tsd_sf)) > 0) {
                          output$tsd_sf <-  renderDT(tsd_sf, selection = 'none', server = F, editable = T)
                          output$display_msg <- renderText("Please, fill up missing values!")
-                         c_comments$hide <- 1
+                         p_hide$DT <- 1
                          } else {
-                         c_comments$hide <- NA
+                         p_hide$DT <- NA
                          }
                      }
                    }
       )
   
       # https://github.com/rstudio/DT/pull/480
-      # observeEvent(input$tsd_sf_cell_edit,
-      #              handlerExpr = {
-      # 
-      #                    }
-      # 
-      #              
-      # 
-      # )
+      observeEvent(input$tsd_sf_cell_edit,
+                        handlerExpr = {
+                          c_comments$tsd_sf[input$tsd_sf_cell_edit$row,input$tsd_sf_cell_edit$col] <<- input$tsd_sf_cell_edit$value
+                          browser()
+                         }
+
+       )
 
 }   
 
