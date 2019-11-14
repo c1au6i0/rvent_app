@@ -27,9 +27,15 @@ ui <- fluidPage( #
     #summarized_dat {
         font-size: 12px;
     } 
+    
     #summarize {
         font-weight: bold;
         background: LightGreen;
+        border-color: green;
+    }
+    
+    #bin_d {
+        text-align: center;
     }
 
          
@@ -111,18 +117,37 @@ ui <- fluidPage( #
               )
           )
     ),
+    
     # PLOTS--------------------------------------------------------------------
     tabPanel("plots",
           sidebarLayout(
                # side panel-----------------
-               sidebarPanel(width = 6),
+               sidebarPanel(width = 4,
+                    awesomeRadio(
+                              inputId = "stat_plot",
+                              label = h3("Stat to perform"),
+                              choices = c("mean",
+                                          "median"
+                                          ),
+                              inline = TRUE
+                              ),
+                    br(), 
+                    br(),
+                    br(),
+                    br(),
+                    sliderInput("bin_plot", label = h3("Slider: bin duration (min)"), min = 0, 
+                           max = 30, value = 1)
+                    
+              ),
               # main panel-----------------
-               mainPanel(width = 6)
+               mainPanel(width = 8
+              )
              
-             )
+         )
     )
   )
 )
+
 # https://shiny.rstudio.com/reference/shiny/0.14/renderUI.html
 # https://gist.github.com/wch/5436415/
 
@@ -136,7 +161,7 @@ server <- function(input, output, session) {
         filetypes = c("txt", "tsv", "csv")
     )
     
-    output$display_msg <- renderText("Choose a foder that contains iox files, Renata!") 
+    output$display_msg <- renderText("Choose a foder that contains iox files or the DemoData!") 
     
     # reactive val-----------------------
     dpath <- reactiveVal()
