@@ -4,21 +4,13 @@ library(shinyFiles)
 library(DT)
 library(shinyWidgets)
 
-showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TRUE, 
-                               id = NULL, type = c("default", "message", "warning", "error"), 
-                               session = shiny:::getDefaultReactiveDomain()) {
-  if (is.null(id)) 
-    id <- shiny:::createUniqueId(8)
-  res <- shiny:::processDeps(HTML(ui), session)
-  actionRes <- shiny:::processDeps(action, session)
-  session$sendNotification("show", list(html = res$html, action = actionRes$html, 
-                                        deps = c(res$deps, actionRes$deps), duration = if (!is.null(duration)) duration * 
-                                          1000, closeButton = closeButton, id = id, type = match.arg(type)))
-  id
-}
-
 ui <- fluidPage( # 
 
+# https://stackoverflow.com/questions/36709441/how-to-display-widgets-inline-in-shiny
+# https://community.rstudio.com/t/verbatimtextoutput-sizing-and-scrollable/1193
+# https://stackoverflow.com/questions/44112000/move-r-shiny-shownotification-to-center-of-screen
+  
+# https://shiny.rstudio.com/articles/notifications.html
   
   tags$head(tags$style(
     HTML('
@@ -46,13 +38,19 @@ ui <- fluidPage( #
         text-align: center;
     }
     
-    # .rightAlign{
-    #       float:right;
+    # #dir {
+    #     width: 100px
     # }
-    # 
-    # .centerAlign{
-    #       float:center;
-    # }
+    
+    .rightAlign{
+          float:right;
+    }
+    
+    .centerAlign{
+          float:center;
+    }
+    
+
          
          ')
     )),
@@ -61,83 +59,109 @@ ui <- fluidPage( #
     # SUMMARY STATS--------------------------------------------------------------------
     tabPanel("summary stats",
 
-            sidebarLayout(
-            # side panel------------
-                  sidebarPanel(width = 6,
-                               
-                               
-                  wellPanel(
-                    div(style="display: inline-block;vertical-align:top;",
-                        switchInput("tutorial", label = "Tutorial")),
-                    div(style="display: inline-block;vertical-align:top; float:right;",
-                          actionButton("license", label = "LICENSE", width = "200px"))
+          fluidPage(
+              
+              # row1 --------
+              fluidRow(
+                  column(6,
+                         verbatimTextOutput("display_msg", placeholder = TRUE)
+                  ),
+                    
+                  column(6,
+                         DTOutput('summarized_dat')
+                  )
+              ),
+              # row2 ---------
+              fluidRow(
+                  column(2,
+                         shinyDirButton("dir", "Input directory", "Upload")
+                  ),
+                  column(2,
+                         actionButton("demo", label = "Demo Data")
+                  ),
+                  column(2,
+                         conditionalPanel(
+                              condition = "output.hideokb",
+                              actionButton("OK_com", label = "OK", class = 'rightAlign' )
+                         )
+                  )
+              ),
+              # row3 ---------
+              fluidRow(
+                  column(6,
+                         conditionalPanel(
+                                  condition = "output.hideokb",
+                                  selectInput("com_sub",
+                                               label = "",
+                                               choices = "",
+                                                multiple = TRUE, width = "100%")
+                          )
+                  )
+              ),
+              # row4 ---------
+              fluidRow(
+                    column(6,
+                           br(),
+                           br(),
+                           br(),
+                           conditionalPanel(
+                              condition = "output.hidedt == false",
+                              DTOutput('tsd_sf')
+                           )
+                    )
+              ),
+              # row 5-------------
+              fluidRow(
+                br(),
+                br(),
+                br(),
+                    column(2,
+                        conditionalPanel(
+                            condition = "output.hidestat",
+                            checkboxGroupButtons(
+                                inputId = "vent_stat",
+                                label = "stats",
+                                choices = c("mean", 
+                                            "median",
+                                            "n",
+                                            "sd")
+                            )
+                        )
                     ),
-                            
-                  div(style="display: inline-block;vertical-align:top;",
-                                    shinyDirButton("dir", "Input directory", "Upload")),
-                                    
-                  div(style="display: inline-block;vertical-align:top;",
-                                    actionButton("demo", label = "Demo Data")),
-                  
-                  div(style="display: inline-block;vertical-align:top;",
-                                      conditionalPanel(
-                                          condition = "output.hideokb",
-                                          actionButton("OK_com", label = "OK")
-                                      )),
-                              
-                                    conditionalPanel(
-                                        condition = "output.hideokb",
-                                        selectInput("com_sub", 
-                                                  label = "",
-                                                  choices = "",
-                                                  multiple = TRUE)
-                                    ),
-                                 br(),
-                                 br(),
-                                 br(),
-                                 br(),
-                              
-                                    conditionalPanel(
-                                        condition = "output.hidedt == false",
-                                        DTOutput('tsd_sf')
-                                    ) ,
-                                  br(),
-                                  br(),
-                                  br(),
-                                  br(),
-                div(style="display: inline-block;vertical-align:top;", 
-                                      conditionalPanel(
-                                            condition = "output.hidestat",
-                                            checkboxGroupButtons(
-                                              inputId = "vent_stat",
-                                              label = "stats",
-                                              choices = c("mean",
-                                                      "median",
-                                                      "n",
-                                                      "sd"))
-                                    )),
-                div(style="display: inline-block;vertical-align:top;", 
-                                      conditionalPanel(
-                                          condition = "output.hidestat",
-                                          numericInput("bin", 
-                                                   label = "bin (min)", value = 1, min = 1, width = '100px'),
-                                    )),
-               div(style="display: inline-block;vertical-align:top;", 
-                                    conditionalPanel(
-                                        condition = "output.hidestat",
-                                        numericInput("baseline", 
-                                                   label = "baseline (min)", value = 30, min = 1, width = '100px'),
-                                    )),
-                                  conditionalPanel(
-                                        condition = "output.hidestat",
-                                        actionButton("summarize", label = "visualize and save summary", width = "100%")
-                              )
-               ),
-            # main panel------------
-              mainPanel( width = 6,
-                DTOutput('summarized_dat')
-              )
-          )
+                    column(2,
+                        conditionalPanel(
+                            condition = "output.hidestat",
+                            numericInput("bin",
+                                          label = "bin (min)", 
+                                          value = 1, 
+                                          min = 1, 
+                                          width = '100px'
+                            )
+                       )
+                    ),
+                    column(2,
+                        conditionalPanel(
+                             condition = "output.hidestat",
+                             numericInput("baseline", 
+                                          label = "baseline (min)", 
+                                          value = 30, min = 1,
+                                          width = '100px'),
+                        )
+                    )
+              ),
+              # row6-------
+              fluidRow(
+                column(6,
+                       conditionalPanel(
+                            condition = "output.hidestat",
+                            actionButton("summarize", 
+                                         label = "visualize and save summary", 
+                                         width = "100%")
+                        )
+                )
+            )
+            # fiinished row---------
+        )
     ),
     
     # PLOTS--------------------------------------------------------------------
@@ -217,49 +241,35 @@ server <- function(input, output, session) {
     outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
     
     
-      # license
-      observeEvent(ignoreNULL = TRUE,
-                   eventExpr = {
-                     input$license
-                   },
-                   showNotification2(
-                      "# MIT License: Copyright (c) 2019 Claudio Zanettini",
-                      action = "www.google.com",
-                      
-                      closeButton = TRUE)
-                   )
-     
-      
-    
-    
       # get the iox files-----
       observeEvent(ignoreNULL = TRUE,
-                   eventExpr = {
+                 eventExpr = {
                      input$dir
-                    },
-                   handlerExpr = {
-                       if (!"path" %in% names(dir())) return()
-                       home <- normalizePath("~")
-                       datapath <-
-                           file.path(home, paste(unlist(dir()$path[-1]), collapse = .Platform$file.sep))
-                       
-                       dpath(datapath)
-                       
-                       all_data <- tryCatch(
-                           get_iox(iox_folder = datapath, inter = FALSE, baseline = 30),
-                           error = function(c) conditionMessage(c)
-                           )
-                       if (is.list(all_data)) {
-                           output$display_msg <- renderText("Click on the menu and indentify drug injections!")
-                           p_hide$okb <- 1
-                           choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
-                                                           .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
-                           
-                           vent(all_data$vent)
-                           c_comments$tsd_s <- choose_comments
-                       } else {
-                           output$display_msg <- renderText(all_data)
-                       }
+                 },
+                 handlerExpr = {
+                     if (!"path" %in% names(dir())) return()
+                     home <- normalizePath("~")
+                     datapath <-
+                         file.path(home, paste(unlist(dir()$path[-1]), collapse = .Platform$file.sep))
+                     
+                     dpath(datapath)
+                     
+                     all_data <- tryCatch(
+                         get_iox(iox_folder = datapath, inter = FALSE, baseline = 30),
+                         error = function(c) conditionMessage(c)
+                         )
+                     if (is.list(all_data)) {
+                         output$display_msg <- renderText("Click on the menu and indentify drug injections!")
+                         p_hide$okb <- 1
+                         choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
+                                                         .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
+                         
+                         vent(all_data$vent)
+                         c_comments$tsd_s <- choose_comments
+                     } else {
+                         output$display_msg <- renderText(all_data)
+                     }
+                     
                   }
     )
     
