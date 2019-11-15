@@ -36,7 +36,11 @@ ui <- fluidPage(
              top: calc(0%);
              left: calc(50%);
              width: 400px;
-             }
+    }
+    
+    .centerAlign {
+            float: right;
+    }
          
          ')
     )),
@@ -129,33 +133,45 @@ ui <- fluidPage(
           sidebarLayout(
                # side panel-----------------
                sidebarPanel(width = 4,
-                    awesomeRadio(
+                    radioGroupButtons(
                               inputId = "stat_plot",
                               label = h3("Stat to perform"),
                               choices = c("mean",
-                                          "median"
-                                          ),
-                              inline = TRUE
-                              ),
-                    br(), 
-                    br(),
+                                          "median")
+                    ),
+
                     br(),
                     br(),
                     sliderInput("bin_plot", label = h3("Slider: bin duration (min)"), min = 0, 
-                           max = 30, value = 1)
+                           max = 30, value = 1),
+                    br(),
+                    br(),
+                    wellPanel(
+                      div(style="display: inline-block;vertical-align:top;",
+                          actionButton("show_plots", label = "Show Plots")),
+                      div(style="display: inline-block;vertical-align:top; float:right;",
+                          actionButton("save_plots", label = "Save Plots"))
+                    ),
+                    
                     
               ),
               # main panel-----------------
-               mainPanel(width = 8
-              )
-             
-         )
-    )
-  )
-)
+               mainPanel(width = 8,
+                    conditionalPanel(condition = "output.g1",   
+                         tabsetPanel(
+                           tabPanel("tab1", plotOutput("g1")), 
+                           tabPanel("tab2", plotOutput("g2")),
+                           tabPanel("tab3", plotOutput("g3")),
+                           tabPanel("tab4", plotOutput("g4")),
+                           tabPanel("tab5", plotOutput("g5")),
+                           tabPanel("tab6", plotOutput("g6")),
+                           tabPanel("tab7", plotOutput("g7")),
+                           tabPanel("tab8", plotOutput("g8")),
+                           tabPanel("tab9", plotOutput("g9")),
+                           tabPanel("tab10", plotOutput("g10"))
+)))))))
 
-# https://shiny.rstudio.com/reference/shiny/0.14/renderUI.html
-# https://gist.github.com/wch/5436415/
+
 
 
 # SERVER-----------------------------------------------------------------------------------------------
@@ -271,10 +287,10 @@ server <- function(input, output, session) {
                    input$demo
                  },
                  handlerExpr = {
-                   url <- "https://lynu3a.bn.files.1drv.com/y4mW2_-dc2Q-qPDhsY1sAc8qgDUnh0NGGY42BQCqULVT6rY8gUxRI5C__-l0UkUblNAxw_tyrlNbZGoUExhNjlaLq2gvT-VfWhBHe7fnvJ1d4ZP2IaUSjqnFDtMbk-EN_UI_fIl3rN6MqvY5fEAwgdWiu_M9EaB3taT8qNdMjd_3fncGXKpuDBdJsB_WqTV08XgkrgFMt9bVwfGIDRxNZ3Eeq_SBTaipvDnM8u4YDSW240/all_data.RDA?download&psid=1"
-                   tmpFile <- tempfile()
-                   download.file(url, destfile = tmpFile)
-                   load(tmpFile)
+                   url <- "https://lynu3a.bn.files.1drv.com/y4mlSRRzD9k1qSZb1Q9D9fq-kYzdgvMBMt5AWr7-m3qSe3ZCSSIyjTK3F77Q7vKEmVPdU2dFJHxU1lVTc64Gfq1N9uYPfa_h3auckI2FCU4oZs_DZSp6ltG5mDXVCDXzYZhLPajvsmY0JauBO85pCjV9vYj2Xa7DTtY8_xz3C2oDKDbZGdTwav6g67LtkQQZFN5pjXGqkhmZFVaqTJr-A76g3KCoTxIg3ME-FpWwQGjz_w/all_data.RDA?download&psid=1"
+                   tempo <- tempfile()
+                   download.file(url, destfile = tempo)
+                   load(tempo)
                    if(input$tutorial == TRUE) {
                      showNotification("Click on the menu, indentify drug injections and press OK!", duration = 5)
                    } 
