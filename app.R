@@ -4,30 +4,15 @@ library(shinyFiles)
 library(DT)
 library(shinyWidgets)
 
-showNotification2 <- function (ui, action = NULL, duration = 5, closeButton = TRUE, 
-                               id = NULL, type = c("default", "message", "warning", "error"), 
-                               session = shiny:::getDefaultReactiveDomain()) {
-  if (is.null(id)) 
-    id <- shiny:::createUniqueId(8)
-  res <- shiny:::processDeps(HTML(ui), session)
-  actionRes <- shiny:::processDeps(action, session)
-  session$sendNotification("show", list(html = res$html, action = actionRes$html, 
-                                        deps = c(res$deps, actionRes$deps), duration = if (!is.null(duration)) duration * 
-                                          1000, closeButton = closeButton, id = id, type = match.arg(type)))
-  id
-}
 
-ui <- fluidPage( # 
+
+# UI-------------
+ui <- fluidPage(  
 
   
   tags$head(tags$style(
     HTML('
-    #display_msg {
-        background: white;
-        font-size: 14px;
-        font-family: "Helvetica Neue",Helvetica,sans-serif;
-    }
-    
+
     #OK_com{
         border-color: green
     }
@@ -46,13 +31,12 @@ ui <- fluidPage( #
         text-align: center;
     }
     
-    # .rightAlign{
-    #       float:right;
-    # }
-    # 
-    # .centerAlign{
-    #       float:center;
-    # }
+    .shiny-notification {
+             position:fixed;
+             top: calc(0%);
+             left: calc(50%);
+             width: 400px;
+             }
          
          ')
     )),
@@ -68,7 +52,7 @@ ui <- fluidPage( #
                                
                   wellPanel(
                     div(style="display: inline-block;vertical-align:top;",
-                        switchInput("tutorial", label = "Tutorial")),
+                        switchInput("tutorial", label = "Tutorial", value = TRUE)),
                     div(style="display: inline-block;vertical-align:top; float:right;",
                           actionButton("license", label = "LICENSE", width = "200px"))
                     ),
@@ -183,7 +167,16 @@ server <- function(input, output, session) {
         filetypes = c("txt", "tsv", "csv")
     )
     
-    output$display_msg <- renderText("Choose a foder that contains iox files or the DemoData!") 
+  
+
+  showNotification("Click on input button to select iox folder or use DemoData!",
+                     action = "You can turn off these notifications with the Tutorial-switch button", 
+                     duration = 300)
+
+  
+  
+  
+  
     
     # reactive val-----------------------
     dpath <- reactiveVal()
@@ -217,20 +210,25 @@ server <- function(input, output, session) {
     outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
     
     
-      # license
+      # license --------
       observeEvent(ignoreNULL = TRUE,
                    eventExpr = {
                      input$license
                    },
-                   showNotification2(
-                      "# MIT License: Copyright (c) 2019 Claudio Zanettini",
-                      action = "www.google.com",
-                      
-                      closeButton = TRUE)
-                   )
-     
-      
+                   handlerExpr = {
+                     sendSweetAlert(session = session,
+                                   title = "MIT License",
+                                   html = TRUE,
+                                   text = 
+                                   HTML("Copyright (c) 2019 Claudio Zanettini <br> 
+                                   <a href=\"https://github.com/c1au6i0/rvent_app/blob/master/LICENSE.md\"> LICENSE </a>"),
+                                   width = "200px"
+                    )
+                   }
+  
+    )
     
+     
     
       # get the iox files-----
       observeEvent(ignoreNULL = TRUE,
@@ -250,7 +248,11 @@ server <- function(input, output, session) {
                            error = function(c) conditionMessage(c)
                            )
                        if (is.list(all_data)) {
-                           output$display_msg <- renderText("Click on the menu and indentify drug injections!")
+                          
+                          if(input$tutorial == TRUE) {
+                                showNotification("Click on the menu, indentify drug injections and press OK!", duration = 5)
+                          } 
+                           
                            p_hide$okb <- 1
                            choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
                                                            .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
@@ -258,7 +260,7 @@ server <- function(input, output, session) {
                            vent(all_data$vent)
                            c_comments$tsd_s <- choose_comments
                        } else {
-                           output$display_msg <- renderText(all_data)
+                           sendSweetAlert(session = session, title = "Error!", text = all_data, type = "error" )
                        }
                   }
     )
@@ -273,7 +275,9 @@ server <- function(input, output, session) {
                    tmpFile <- tempfile()
                    download.file(url, destfile = tmpFile)
                    load(tmpFile)
-                   output$display_msg <- renderText("Click on the menu and indentify drug injections!")
+                   if(input$tutorial == TRUE) {
+                     showNotification("Click on the menu, indentify drug injections and press OK!", duration = 5)
+                   } 
                    p_hide$okb <- 1
                    choose_comments <- tidyr::unite(all_data$tsd_s, col = "subj_drug_dose_unit", 
                                                    .data$subj, .data$drug, .data$dose, .data$unit, sep = " ")
@@ -298,7 +302,10 @@ server <- function(input, output, session) {
                    },
                    handlerExpr = {
                     if(is.null(input$com_sub)) {
-                          output$display_msg <- renderText("Please select something!")
+                          if(input$tutorial == TRUE) {
+                              showNotification("Please select something!", duration = 5)
+                          } 
+
                           p_hide$DT <- NA
                     } else {
                          p_hide$stat <- 1
@@ -311,7 +318,12 @@ server <- function(input, output, session) {
                          c_comments$tsd_sf <- tsd_sf
                          if (sum(is.na(c_comments$tsd_sf)) > 0) {
                          output$tsd_sf <-  renderDT(tsd_sf, selection = 'none', server = F, editable = T)
-                         output$display_msg <- renderText("Please, fill up missing values!")
+                         
+                         
+                         if(input$tutorial == TRUE) {
+                           showNotification("Please, fill up missing values!", duration = 5)
+                         } 
+                     
                          p_hide$DT <- 1
                          } else {
                          p_hide$DT <- NA
@@ -327,7 +339,11 @@ server <- function(input, output, session) {
                           c_comments$tsd_sf[input$tsd_sf_cell_edit$row,input$tsd_sf_cell_edit$col] <<- input$tsd_sf_cell_edit$value
                           if(sum(is.na(c_comments$tsd_sf)) == 0){
                             p_hide$stat <- NA
-                            output$display_msg <- renderText("Now select stats bin and baseline!")
+                            
+                            if(input$tutorial == TRUE) {
+                              showNotification("Now select stats bin and baseline!", duration = 5)
+                            } 
+                            
                           }
                          }
 
@@ -340,7 +356,11 @@ server <- function(input, output, session) {
         },
         handlerExpr = {
           if(is.null(input$vent_stat)) {
-            output$display_msg <- renderText("Choose at least one stat!")
+            
+            if(input$tutorial == TRUE) {
+              showNotification("Choose at least one stat!", duration = 5)
+            } 
+            
           } else {
             vent_jn <- normalizetime_vent(dat = vent(),
                                           tsd_s = c_comments$tsd_sf, 
