@@ -6,6 +6,15 @@ library(shinyWidgets)
 library(RCurl)
 library(shinythemes)
 library(ggplot2)
+library(shinycssloaders)
+
+
+
+
+  
+
+# if("rvent" %in% installed.packages()[,"Package"] == FALSE) 
+
 
 # NOTE DEMO NEED A PATH!!!!!!!!!
 # #summarize {
@@ -192,8 +201,13 @@ ui <- fluidPage(
                     label = "Slider: bin duration (min)", min = 0,
                     max = 30, value = 1
                   ),
-                  br(),
-                  br(),
+
+                  pickerInput(
+                    inputId = "measures",
+                    label = "Metric", 
+                    choices = "",
+                    multiple = TRUE
+                  ),
                   wellPanel(
                     div(
                       style = "display: inline-block;vertical-align:top;",
@@ -468,7 +482,7 @@ server <- function(input, output, session) {
     }
   )
 
-  # table with comments edited SAVE: slide and checkbox -----------
+  # table with comments edited SAVE -----------
   observeEvent(
     eventExpr = {
       input$summarize
@@ -520,6 +534,11 @@ server <- function(input, output, session) {
             autoWidth = TRUE
           )
         )
+        # choices tab plots
+        measure_choices <- c("ALL", levels(vent_all$dat_vent$measure))
+        updateSelectInput(session, "measures",
+                          choices = measure_choices)
+        
       }
     }
   )
@@ -532,25 +551,40 @@ server <- function(input, output, session) {
       input$show_plots
     },
     handlerExpr = {
+
+      measure <- input$measures
+      if(length(measure) > 1 & "ALL" %in% measure) {
+        measure <- "ALL"
+      }
       
       p_hide$saveplots <- 1
       plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-                             vent_stat = input$stat_plot, baseline = input$baseline2, bin = input$bin_plot, fsave = FALSE)
+                             vent_stat = input$stat_plot, baseline = input$baseline2, bin = input$bin_plot,
+                             measure = measure,
+                             
+                             
+                             fsave = FALSE)
       rc_plots(plots)
 
      
         # thanks mr flick
-      withProgress(
+
            Map(function(x){
+             
   
-              title_t  <- paste(x$data$subj[1], input$stat_plot, "bin =", input$bin_plot, sep = " ")
-              # assign(paste0("output$",title_t), renderPlot({x}))
-              output[[title_t]] <- renderPlot({x})
+              title_t  <- paste(x$data$subj[1], input$stat_plot, sep = " ")
+              plot_subj <- paste(x$data$subj[1], 
+                                 input$stat_plot, 
+                                 input$baseline2, 
+                                 input$bin_plot,
+                                 paste(measure, collapse = "_"),
+                                 sep = "_")
+              output[[plot_subj]] <- renderPlot({x})
             
              appendTab(inputId = "plots_in_plots",
-             tabPanel(title = title_t, plotOutput(title_t, width = "1000px", height = "750px")))
+             tabPanel(title = title_t, plotOutput(plot_subj)))
              }, plots)
-           , message = "Computing...please wait")
+   
       }
     )
   # save figs------
