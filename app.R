@@ -53,10 +53,10 @@ ui <- fluidPage(
   )),
   useSweetAlert(),
   tabsetPanel(
-    # id = "all",
+    id = "all",
     # SUMMARY STATS--------------------------------------------------------------------
     tabPanel(
-      "summary stats",
+      title = "summary stats",
       sidebarLayout(
         # side panel------------
         sidebarPanel(
@@ -162,14 +162,9 @@ ui <- fluidPage(
 
     # PLOTS--------------------------------------------------------------------
       tabPanel(
-        "plots",
-        conditionalPanel(
-          "output.hideplots != 1",
-          h3("Import and summarized the data and come back!")),
-        conditionalPanel(
-          "output.hideplots",
-              sidebarLayout(
-                # side panel-----------------
+        title = "plots",
+           sidebarLayout(
+             # side panel-----------------
                 sidebarPanel(
                   width = 4,
                   radioGroupButtons(
@@ -177,8 +172,7 @@ ui <- fluidPage(
                     label = h3("Stat to perform"),
                     choices = c(
                       "mean",
-                      "median"
-                    )
+                      "median")
                   ),
 
                   br(),
@@ -203,21 +197,12 @@ ui <- fluidPage(
                 # main panel-----------------
                 mainPanel(
                   width = 8,
-                  
-                    tabsetPanel(id = "allplots", type = "pills",
-                        # uiOutput("moreTabs")
- 
-                      # tabPanel(title = uiOutput("tab1"), plotOutput("g1")),
-                      # tabPanel(title = uiOutput("tab2"), plotOutput("g2")),
-                      # tabPanel(title = uiOutput("tab3"), plotOutput("g3")),
-                      # tabPanel(title = uiOutput("tab4"), plotOutput("g5")),
-                      # tabPanel(title = uiOutput("tab5"), plotOutput("g6")),
-                      # tabPanel(title = uiOutput("tab6"), plotOutput("g7")),
-                      # tabPanel(title = uiOutput("tab7"), plotOutput("g8")),
-                      # tabPanel(title = uiOutput("tab8"), plotOutput("g9")),
-                      # tabPanel(title = uiOutput("tab9"), plotOutput("g10"))
+                  tabsetPanel(id = "allplots", type = "pills"
+
+                
+  
               )
-            )
+
           )
         )
       )
@@ -238,6 +223,7 @@ server <- function(input, output, session) {
     filetypes = c("txt", "tsv", "csv")
   )
 
+  hideTab("all", "plots")
   
   showModal(modalDialog(
     title = "Tutorial",
@@ -255,9 +241,7 @@ server <- function(input, output, session) {
   vent <- reactiveVal()
   rc_ses <- reactiveVal()
   
-  # rc_plots  <- reactiveVal({session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-  #                                         vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE))
-
+  rc_plots  <- reactiveVal()
 
 
   # hide --------------------------
@@ -279,21 +263,13 @@ server <- function(input, output, session) {
     is.na(p_hide$stat)
   })
   
-  output$hideplots <- reactive({
-    p_hide$plots
-  })
-  
-  output$hideplotstabs <- reactive({
-    p_hide$plotstabs
-  })
-    
 
   # outputOptions --------------MAKE A LIST
   outputOptions(output, "hidestat", suspendWhenHidden = FALSE)
   outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
   outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
-  outputOptions(output, "hideplots", suspendWhenHidden = FALSE)
-  outputOptions(output, "hideplotstabs", suspendWhenHidden = FALSE)
+
+
 
 
   summarized_dat <- reactiveVal()
@@ -498,9 +474,8 @@ server <- function(input, output, session) {
         )
 
         rc_ses(sess1)
+        showTab("all", "plots")
         
-        p_hide$plots <- 1
-
         vent_all <- summarize_vent(sess1, inter = FALSE, baseline = input$baseline, bin = input$bin, form = input$vent_stat)
 
         summarized_dat(vent_all)
@@ -573,8 +548,7 @@ server <- function(input, output, session) {
       # browser()
       plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
                              vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
-      p_hide$plotstabs  <- 0
-      
+      rc_plots(plots)
       nplots <-   length(plots)
       subj <- lapply(plots, function(x){x$data$subj[1]})
       
