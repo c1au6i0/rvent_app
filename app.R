@@ -179,23 +179,14 @@ ui <- fluidPage(
              # side panel-----------------
                 sidebarPanel(
                   width = 4,
-                  div(
-                    style = "display: inline-block;vertical-align:top;",
+
                   radioGroupButtons(
                     inputId = "stat_plot",
                     label = "stat",
                     choices = c(
                       "mean",
                       "median")
-                  )),
-                  div(
-                    style = "display: inline-block;vertical-align:top;",
-                      numericInput("baseline2",
-                                   label = "baseline (min)", value = 30, min = 1, width = "100px"
-                      )
                   ),
-
-                  br(),
                   br(),
                   sliderInput("bin_plot",
                     label = "Slider: bin duration (min)", min = 0,
@@ -344,7 +335,7 @@ server <- function(input, output, session) {
       dpath(datapath)
 
       all_data <- tryCatch(
-        get_iox(iox_folder = datapath, inter = FALSE, baseline = 30),
+        get_iox(iox_folder = datapath, inter = FALSE),
         error = function(c) conditionMessage(c)
       )
       if (is.list(all_data)) {
@@ -559,7 +550,7 @@ server <- function(input, output, session) {
       
       p_hide$saveplots <- 1
       plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-                             vent_stat = input$stat_plot, baseline = input$baseline2, bin = input$bin_plot,
+                             vent_stat = input$stat_plot, bin = input$bin_plot,
                              measure = measure,
                              
                              
@@ -570,13 +561,11 @@ server <- function(input, output, session) {
         # thanks mr flick
 
            Map(function(x){
-             
-  
               title_t  <- paste(x$data$subj[1], input$stat_plot, sep = " ")
               plot_subj <- paste(x$data$subj[1], 
                                  input$stat_plot, 
-                                 input$baseline2, 
                                  input$bin_plot,
+                                 input$baseline,
                                  paste(measure, collapse = "_"),
                                  sep = "_")
               output[[plot_subj]] <- renderPlot({x})
@@ -584,7 +573,6 @@ server <- function(input, output, session) {
              appendTab(inputId = "plots_in_plots",
              tabPanel(title = title_t, plotOutput(plot_subj)))
              }, plots)
-   
       }
     )
   # save figs------
