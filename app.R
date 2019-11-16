@@ -54,6 +54,7 @@ ui <- fluidPage(
   useSweetAlert(),
   tabsetPanel(
     id = "all",
+    types = "pills",
     # SUMMARY STATS--------------------------------------------------------------------
     tabPanel(
       title = "summary stats",
@@ -162,7 +163,7 @@ ui <- fluidPage(
 
     # PLOTS--------------------------------------------------------------------
       tabPanel(
-        title = "plots",
+        title = "plots", 
            sidebarLayout(
              # side panel-----------------
                 sidebarPanel(
@@ -188,16 +189,19 @@ ui <- fluidPage(
                       style = "display: inline-block;vertical-align:top;",
                       actionButton("show_plots", label = "Show Plots")
                     ),
+                    
                     div(
                       style = "display: inline-block;vertical-align:top; float:right;",
-                      actionButton("save_plots", label = "Save Plots")
+                      conditionalPanel(
+                          condition = "output.saveplots",
+                          actionButton("save_plots", label = "Save Last Plots"))
                     )
                   ),
                 ),
                 # main panel-----------------
                 mainPanel(
                   width = 8,
-                  tabsetPanel(id = "allplots", type = "pills"
+                  tabsetPanel(id = "plots_in_plots"
 
                 
   
@@ -263,12 +267,16 @@ server <- function(input, output, session) {
     is.na(p_hide$stat)
   })
   
+  
+  output$saveplots <- reactive({
+    p_hide$saveplots
+  })
 
   # outputOptions --------------MAKE A LIST
   outputOptions(output, "hidestat", suspendWhenHidden = FALSE)
   outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
   outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
-
+  outputOptions(output, "saveplots", suspendWhenHidden = FALSE)
 
 
 
@@ -507,36 +515,6 @@ server <- function(input, output, session) {
   )
 
   
-
-  # save figs------
-  observeEvent(
-    ignoreNULL = TRUE,
-      eventExpr = {
-        input$save_plots
-      },
-      handlerExpr = {
-
-        # save data
-        withProgress(
-            expr = {
-              plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-                                     vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
-              lapply(plots, function(dat){
-                file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
-                file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-                ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
-            })}, message = "Computing...please wait")
-            
-        sendSweetAlert(
-          session = session,
-          title = "Success!",
-          text = "Plots in iox folder",
-          type = "success",
-          width = "200px"
-        )
-
-      })
-
   # show figs-------
   observeEvent(
     ignoreNULL = TRUE,
@@ -545,24 +523,62 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
       
-      # browser()
+      p_hide$saveplots <- 1
       plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
                              vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
       rc_plots(plots)
-      nplots <-   length(plots)
-      subj <- lapply(plots, function(x){x$data$subj[1]})
+
+     
+        # thanks mr flick
+      withProgress(
+           Map(function(x){
+  
+              title_t  <- paste(x$data$subj[1], input$stat_plot, "bin =", input$bin_plot, sep = " ")
+              # assign(paste0("output$",title_t), renderPlot({x}))
+              output[[title_t]] <- renderPlot({x})
+            
+             appendTab(inputId = "plots_in_plots",
+             tabPanel(title = title_t, plotOutput(title_t, width = "1000px", height = "750px")))
+             }, plots)
+           , message = "Computing...please wait")
+      }
+    )
+  # save figs------
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$save_plots
+    },
+    handlerExpr = {
       
-
-      # for each graph and subj appendTab()
-
-
-      # https://stackoverflow.com/questions/35020810/dynamically-creating-tabs-with-plots-in-shiny-without-re-creating-existing-tabs
-      # https://shiny.rstudio.com/reference/shiny/0.14/renderUI.html
-      # https://stackoverflow.com/questions/47896844/shiny-dynamically-change-tab-names
-    }
-    
-  )
+      # save data
+      withProgress(
+        expr = {
+          plots <- rc_plots()
+          lapply(plots, function(dat){
+            file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
+            file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+            ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
+          })}, message = "Computing...please wait")
+      
+      sendSweetAlert(
+        session = session,
+        title = "Success!",
+        text = "Plots in iox folder",
+        type = "success",
+        width = "200px"
+      )
+      
+    })
+  
 }
-
+# https://gist.github.com/wch/5436415/
+# https://stackoverflow.com/questions/35737029/how-to-generate-output-for-multi-plots-within-a-loop-in-shiny-app
 # Run the application
 shinyApp(ui = ui, server = server)
+
+# prova = "ciao"
+# assign(prova, "OK")
+# title_t <- "subj1"
+# 
+# assign(paste0("output$",title_t), "ciao")
