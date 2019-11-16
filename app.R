@@ -4,13 +4,26 @@ library(shinyFiles)
 library(DT)
 library(shinyWidgets)
 library(RCurl)
+library(shinythemes)
 library(ggplot2)
 
 # NOTE DEMO NEED A PATH!!!!!!!!!
+# #summarize {
+#     font-weight: bold;
+#     background: LightGreen;
+#     border-color: green;
+# }
+# .modal-dialog {
+#          position:fixed;
+#          top: calc(0%);
+#          left: calc(50%);
+#          width: 400px;
+# }
 
 
 # UI-------------
 ui <- fluidPage(
+  theme = shinytheme("paper"),
   tags$head(tags$style(
     HTML("
 
@@ -22,39 +35,29 @@ ui <- fluidPage(
         font-size: 12px;
     } 
     
-    #summarize {
-        font-weight: bold;
-        background: LightGreen;
-        border-color: green;
-    }
-    
-    #bin_d {
+
+    .form-control.shiny-bound-input {
         text-align: center;
     }
     
-    # .modal-dialog {
-    #          position:fixed;
-    #          top: calc(0%);
-    #          left: calc(50%);
-    #          width: 400px;
-    # }
-    
+
     .progress {
             width: 400px;
 
     }
     
     
-    .centerAlign {
-            float: right;
+    #bin {
+            text-align: center;
     }
+    
          
          ")
   )),
   useSweetAlert(),
   tabsetPanel(
     id = "all",
-    types = "pills",
+    # types = "pills",
     # SUMMARY STATS--------------------------------------------------------------------
     tabPanel(
       title = "summary stats",
@@ -130,6 +133,7 @@ ui <- fluidPage(
               )
             )
           ),
+
           div(
             style = "display: inline-block;vertical-align:top;",
             conditionalPanel(
@@ -137,8 +141,7 @@ ui <- fluidPage(
               numericInput("bin",
                 label = "bin (min)", value = 1, min = 1, width = "100px"
               ),
-            )
-          ),
+            )),
           div(
             style = "display: inline-block;vertical-align:top;",
             conditionalPanel(
@@ -146,8 +149,7 @@ ui <- fluidPage(
               numericInput("baseline",
                 label = "baseline (min)", value = 30, min = 1, width = "100px"
               ),
-            )
-          ),
+            ),),
           conditionalPanel(
             condition = "output.hidestat",
             actionButton("summarize", label = "visualize and save summary", width = "100%")
@@ -168,18 +170,26 @@ ui <- fluidPage(
              # side panel-----------------
                 sidebarPanel(
                   width = 4,
+                  div(
+                    style = "display: inline-block;vertical-align:top;",
                   radioGroupButtons(
                     inputId = "stat_plot",
-                    label = h3("Stat to perform"),
+                    label = "stat",
                     choices = c(
                       "mean",
                       "median")
+                  )),
+                  div(
+                    style = "display: inline-block;vertical-align:top;",
+                      numericInput("baseline2",
+                                   label = "baseline (min)", value = 30, min = 1, width = "100px"
+                      )
                   ),
 
                   br(),
                   br(),
                   sliderInput("bin_plot",
-                    label = h3("Slider: bin duration (min)"), min = 0,
+                    label = "Slider: bin duration (min)", min = 0,
                     max = 30, value = 1
                   ),
                   br(),
@@ -525,7 +535,7 @@ server <- function(input, output, session) {
       
       p_hide$saveplots <- 1
       plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-                             vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
+                             vent_stat = input$stat_plot, baseline = input$baseline2, bin = input$bin_plot, fsave = FALSE)
       rc_plots(plots)
 
      
