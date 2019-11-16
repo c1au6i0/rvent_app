@@ -32,12 +32,12 @@ ui <- fluidPage(
         text-align: center;
     }
     
-    .modal-dialog {
-             position:fixed;
-             top: calc(0%);
-             left: calc(50%);
-             width: 400px;
-    }
+    # .modal-dialog {
+    #          position:fixed;
+    #          top: calc(0%);
+    #          left: calc(50%);
+    #          width: 400px;
+    # }
     
     .progress {
             width: 400px;
@@ -203,19 +203,19 @@ ui <- fluidPage(
                 # main panel-----------------
                 mainPanel(
                   width = 8,
-                  conditionalPanel(
-                    condition = "output.hideplotstabs",
-                    tabsetPanel(
-                      tabPanel("tab1", plotOutput("g1")),
-                      tabPanel("tab2", plotOutput("g2")),
-                      tabPanel("tab3", plotOutput("g3")),
-                      tabPanel("tab4", plotOutput("g4")),
-                      tabPanel("tab5", plotOutput("g5")),
-                      tabPanel("tab6", plotOutput("g6")),
-                      tabPanel("tab7", plotOutput("g7")),
-                      tabPanel("tab8", plotOutput("g8")),
-                      tabPanel("tab9", plotOutput("g9")),
-                      tabPanel("tab10", plotOutput("g10"))
+                  
+                    tabsetPanel(id = "allplots", type = "pills",
+                        # uiOutput("moreTabs")
+ 
+                      # tabPanel(title = uiOutput("tab1"), plotOutput("g1")),
+                      # tabPanel(title = uiOutput("tab2"), plotOutput("g2")),
+                      # tabPanel(title = uiOutput("tab3"), plotOutput("g3")),
+                      # tabPanel(title = uiOutput("tab4"), plotOutput("g5")),
+                      # tabPanel(title = uiOutput("tab5"), plotOutput("g6")),
+                      # tabPanel(title = uiOutput("tab6"), plotOutput("g7")),
+                      # tabPanel(title = uiOutput("tab7"), plotOutput("g8")),
+                      # tabPanel(title = uiOutput("tab8"), plotOutput("g9")),
+                      # tabPanel(title = uiOutput("tab9"), plotOutput("g10"))
               )
             )
           )
@@ -223,7 +223,7 @@ ui <- fluidPage(
       )
     )
   )
-)
+
 
 
 
@@ -238,6 +238,7 @@ server <- function(input, output, session) {
     filetypes = c("txt", "tsv", "csv")
   )
 
+  
   showModal(modalDialog(
     title = "Tutorial",
     "Click on input button to select iox folder or use DemoData!",
@@ -245,12 +246,6 @@ server <- function(input, output, session) {
     footer = modalButton("OK"),
     size = "m",
     easyClose = TRUE))
-  
-
-
- # hideTab(inputId = "plots", target =  "all")
-
-
 
 
   # reactive val-----------------------
@@ -259,17 +254,11 @@ server <- function(input, output, session) {
   c_comments <- reactiveValues()
   vent <- reactiveVal()
   rc_ses <- reactiveVal()
-  rc_figs  <- eventReactive(
-    ignoreNULL = TRUE,
-    eventExpr = {
-      input$show_plots
-      input$save_plots
-    },
-    valueExpr = {
-      session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-                    vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
-    }
-  )
+  
+  # rc_plots  <- reactiveVal({session_plots(rc_ses(), path = dpath(), inter = FALSE, 
+  #                                         vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE))
+
+
 
   # hide --------------------------
   p_hide <- reactiveValues()
@@ -295,7 +284,7 @@ server <- function(input, output, session) {
   })
   
   output$hideplotstabs <- reactive({
-    is.na(p_hide$plotstabs)
+    p_hide$plotstabs
   })
     
 
@@ -551,12 +540,13 @@ server <- function(input, output, session) {
         input$save_plots
       },
       handlerExpr = {
-        figs <- rc_figs()
 
         # save data
         withProgress(
             expr = {
-              lapply(figs, function(dat){
+              plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
+                                     vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
+              lapply(plots, function(dat){
                 file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
                 file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
                 ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
@@ -579,8 +569,22 @@ server <- function(input, output, session) {
       input$show_plots
     },
     handlerExpr = {
-      figs <- rc_figs()
-      p_hide$plotstabs  <- 1
+      
+      # browser()
+      plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
+                             vent_stat = input$stat_plot, baseline = 30, bin = input$bin_plot, fsave = FALSE)
+      p_hide$plotstabs  <- 0
+      
+      nplots <-   length(plots)
+      subj <- lapply(plots, function(x){x$data$subj[1]})
+      
+
+      # for each graph and subj appendTab()
+
+
+      # https://stackoverflow.com/questions/35020810/dynamically-creating-tabs-with-plots-in-shiny-without-re-creating-existing-tabs
+      # https://shiny.rstudio.com/reference/shiny/0.14/renderUI.html
+      # https://stackoverflow.com/questions/47896844/shiny-dynamically-change-tab-names
     }
     
   )
