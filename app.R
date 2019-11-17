@@ -7,6 +7,7 @@ library(RCurl)
 library(shinythemes)
 library(ggplot2)
 library(shinycssloaders)
+library(shinyjs)
 
 
 
@@ -32,6 +33,9 @@ library(shinycssloaders)
 
 # UI-------------
 ui <- fluidPage(
+  
+  
+  useShinyjs(),  
   theme = shinytheme("paper"),
   tags$head(tags$style(
     HTML("
@@ -126,6 +130,7 @@ ui <- fluidPage(
           br(),
           br(),
           br(),
+          wellPanel(
           div(
             style = "display: inline-block;vertical-align:top;",
             conditionalPanel(
@@ -158,11 +163,15 @@ ui <- fluidPage(
               numericInput("baseline",
                 label = "baseline (min)", value = 30, min = 1, width = "100px"
               ),
-            ),),
+            ),)),
           conditionalPanel(
             condition = "output.hidestat",
-            actionButton("summarize", label = "visualize and save summary", width = "100%")
-          )
+            actionButton("summarize", label = "visualize summary", width = "100%")
+          ),
+          conditionalPanel(
+            condition = "output.save_summary",
+            actionButton("save_summary", label = "save ", width = "100%")
+          ),
         ),
         # main panel------------
         mainPanel(
@@ -179,6 +188,9 @@ ui <- fluidPage(
              # side panel-----------------
                 sidebarPanel(
                   width = 4,
+ 
+                  switchInput("tutorial", label = "Tutorial", value = TRUE),
+                    
 
                   radioGroupButtons(
                     inputId = "stat_plot",
@@ -282,9 +294,14 @@ server <- function(input, output, session) {
     is.na(p_hide$stat)
   })
   
-  
+  # save summary
+  p_hide$stat <- 1
   output$saveplots <- reactive({
-    p_hide$saveplots
+    is.na(p_hide$stat)
+  })
+  
+  output$save_summary <- reactive({
+    p_hide$save_summary
   })
 
   # outputOptions --------------MAKE A LIST
@@ -292,6 +309,7 @@ server <- function(input, output, session) {
   outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
   outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
   outputOptions(output, "saveplots", suspendWhenHidden = FALSE)
+  outputOptions(output, "save_summary", suspendWhenHidden = FALSE)
 
 
 
@@ -454,7 +472,10 @@ server <- function(input, output, session) {
   )
 
   # edit table with comments -----------
-  observeEvent(input$tsd_sf_cell_edit,
+  observeEvent(ignoreNULL = TRUE,
+    eventExpr = {
+      input$tsd_sf_cell_edit
+    },
     handlerExpr = {
       c_comments$tsd_sf[input$tsd_sf_cell_edit$row, input$tsd_sf_cell_edit$col] <<- input$tsd_sf_cell_edit$value
       if (sum(is.na(c_comments$tsd_sf)) == 0) {
@@ -473,7 +494,7 @@ server <- function(input, output, session) {
     }
   )
 
-  # table with comments edited SAVE -----------
+  # calculate summary -----------
   observeEvent(
     eventExpr = {
       input$summarize
@@ -503,18 +524,6 @@ server <- function(input, output, session) {
 
         summarized_dat(vent_all)
 
-        file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
-        file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-
-        writexl::write_xlsx(vent_all$dat_fs, file_path)
-
-        sendSweetAlert(
-          session = session,
-          title = "Success!",
-          text = "Excel file in iox folder",
-          type = "success",
-          width = "200px"
-        )
         output$summarized_dat <- renderDT(vent_all$dat_sml,
           selection = "none",
           server = F,
@@ -525,6 +534,9 @@ server <- function(input, output, session) {
             autoWidth = TRUE
           )
         )
+        
+        p_hide$save_summary <- 1
+        
         # choices tab plots
         measure_choices <- c("ALL", levels(vent_all$dat_vent$measure))
         updateSelectInput(session, "measures",
@@ -533,6 +545,33 @@ server <- function(input, output, session) {
       }
     }
   )
+  
+  # save summary-------
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$save_summary
+    },
+    handlerExpr = {
+      
+      vent_all <- summarized_dat()
+      
+      file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
+      file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+      writexl::write_xlsx(vent_all$dat_fs, file_path)
+      
+      sendSweetAlert(
+        session = session,
+        title = "Success!",
+        text = "Excel file in iox folder",
+        type = "success",
+        width = "200px"
+      )
+      
+      
+    }
+  )
+  
 
   
   # show figs-------
@@ -559,7 +598,6 @@ server <- function(input, output, session) {
 
      
         # thanks mr flick
-
            Map(function(x){
               title_t  <- paste(x$data$subj[1], input$stat_plot, sep = " ")
               plot_subj <- paste(x$data$subj[1], 
@@ -571,7 +609,9 @@ server <- function(input, output, session) {
               output[[plot_subj]] <- renderPlot({x})
             
              appendTab(inputId = "plots_in_plots",
-             tabPanel(title = title_t, plotOutput(plot_subj)))
+             tabPanel(title = title_t, 
+                      plotOutput(plot_subj) %>% withSpinner() 
+                      ))
              }, plots)
       }
     )
