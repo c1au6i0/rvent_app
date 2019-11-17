@@ -1,35 +1,23 @@
-library(shiny)
-library(rvent)
-library(shinyFiles)
+# rvent_app v0.0.1.900
+# Baltimore (MD), November 2019
+# Claudio Zanettini
+
 library(DT)
-library(shinyWidgets)
-library(RCurl)
-library(shinythemes)
 library(ggplot2)
-library(shinycssloaders)
+library(googledrive)
+library(RCurl)
+library(rvent)
+library(shiny)
+library(shinyFiles)
 library(shinyjs)
-library(purrr)
+library(shinycssloaders)
+library(shinythemes)
+library(shinyWidgets)
 
-
-
-
-
+# Shiny.setInputValue
 # if("rvent" %in% installed.packages()[,"Package"] == FALSE)
-
-
-# NOTE DEMO NEED A PATH!!!!!!!!!
-# #summarize {
-#     font-weight: bold;
-#     background: LightGreen;
-#     border-color: green;
-# }
-# .modal-dialog {
-#          position:fixed;
-#          top: calc(0%);
-#          left: calc(50%);
-#          width: 400px;
-# }
-
+# https://shiny.rstudio.com/articles/communicating-with-js.html
+# https://stackoverflow.com/questions/43267911/change-the-input-value-in-shiny-from-server
 
 # UI-------------
 ui <- fluidPage(
@@ -67,6 +55,7 @@ ui <- fluidPage(
          
          ")
   )),
+
   useSweetAlert(),
   tabsetPanel(
     id = "all",
@@ -185,7 +174,7 @@ ui <- fluidPage(
         sidebarPanel(
           width = 4,
 
-          switchInput("tutorial", label = "Tutorial", value = TRUE),
+          switchInput("tutorial2", label = "Tutorial", value = TRUE),
 
 
           radioGroupButtons(
@@ -260,6 +249,29 @@ server <- function(input, output, session) {
   ))
 
 
+  # update tutorial in sync-----------------
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$tutorial
+    },
+    handlerExpr = {
+      updateSwitchInput(session, "tutorial2", value = input$tutorial)
+    }
+  )
+  
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$tutorial2
+    },
+    handlerExpr = {
+      updateSwitchInput(session, "tutorial", value = input$tutorial2)
+    }
+  )
+  
+  
+  
   # reactive val-----------------------
   dpath <- reactiveVal()
   dir <- reactive(input$dir)
@@ -386,11 +398,15 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
-      url <- "https://poaf2q.bn.files.1drv.com/y4mM0GOMscIPKhDpSnn_Kt1LcuNWWD0jpMKF6iZn0wt3M5hgYsgqaiqHXk-QQNGbEQBO8q2Q4OW3Jl6sz95MY-GV8CBUrNYNuayofF7UskjA1Tln2OWCfpyfFy13nGkqvn4M4E4o_ogqo5fcd1CG9n8Cx3RiIev73cnCOLM5uRYivDZ_b2fyGb7tIx-qO515kg7IEDP4qTiduQDFjEi1JNl2Lgs6qP0WqmFQ3_QNXt-WU4/all_data.rda?download&psid=1"
 
-      tempos <- tempfile()
-      download.file(url, destfile = tempos, mode = "wb")
-      load(tempos)
+      drive_download(
+        "dat_vent.rds",
+        path = "temp.RDS",
+        overwrite = TRUE
+      )
+      
+     all_data <- readRDS("temp.RDS")
+
       if (input$tutorial == TRUE) {
         showModal(modalDialog(
           title = "Tutorial",
@@ -500,7 +516,6 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
       if (is.null(input$vent_stat)) {
-        if (input$tutorial == TRUE) {
           showModal(modalDialog(
             title = "Tutorial",
             "Choose at least one stat!",
@@ -508,7 +523,6 @@ server <- function(input, output, session) {
             size = "m",
             easyClose = TRUE
           ))
-        }
       } else {
         sess1 <- normalizetime_vent(
           dat = vent(),
@@ -586,16 +600,17 @@ server <- function(input, output, session) {
       input$all
     },
     handlerExpr = {
-      if(input$all == "plots"){
-        showModal(modalDialog(
-          title = "Tutorial",
-          "Select the stat that you want to use to summarize the bins, the duration of the bins,
-          the metric that you want to use and then, press visualize. You can use 'ALL' metrics or select just some of them.
-          You are free to play with the parameters and make as many plots as you want!",
-          footer = modalButton("OK"),
-          size = "m",
-          easyClose = TRUE
-        ))}
+      if(input$tutorial2 == TRUE){
+          if(input$all == "plots"){
+            showModal(modalDialog(
+              title = "Tutorial",
+              "Select the stat that you want to use to summarize the bins, the duration of the bins,
+              the metric that you want to use and then, press visualize. You can use 'ALL' metrics or select just some of them.
+              You are free to play with the parameters and make as many plots as you want!",
+              footer = modalButton("OK"),
+              size = "m",
+              easyClose = TRUE
+            ))}}
     })
 
   # calculate and show figs-------
@@ -656,6 +671,7 @@ server <- function(input, output, session) {
         }, plots)
         rc_plots(plots)
         
+        if(input$tutorial2 == TRUE){
         showModal(modalDialog(
           title = "Tutorial",
           "Click on the tabs with the subject name to see the graphs. 
@@ -663,7 +679,7 @@ server <- function(input, output, session) {
           footer = modalButton("OK"),
           size = "m",
           easyClose = TRUE
-        ))
+        ))}
       }
     }
   )
