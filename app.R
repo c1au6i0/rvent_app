@@ -238,7 +238,8 @@ ui <- fluidPage(
 
 # SERVER-----------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
-
+  
+  session$onSessionEnded(stopApp)
   # initialize -------
   shinyDirChoose(
     input,
@@ -339,6 +340,7 @@ server <- function(input, output, session) {
       input$dir
     },
     handlerExpr = {
+      
       if (!"path" %in% names(dir())) {
         return()
       }
@@ -533,8 +535,19 @@ server <- function(input, output, session) {
           )
         )
 
+        # show save summary button
         p_hide$save_summary <- 1
-
+        
+        if (input$tutorial == TRUE) {
+          showModal(modalDialog(
+            title = "Tutorial",
+            "Now you can save the summary by pressing the button below or also,
+            plot the data by selecting the 'plots' tab on the top left of the screen.",
+            footer = modalButton("OK"),
+            size = "m",
+            easyClose = TRUE
+          ))}
+        
         # choices tab plots
         measure_choices <- c("ALL", levels(vent_all$dat_vent$measure))
         updateSelectInput(session, "measures",
@@ -552,7 +565,6 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
       vent_all <- summarized_dat()
-
       file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
       file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
       writexl::write_xlsx(vent_all$dat_fs, file_path)
@@ -567,7 +579,24 @@ server <- function(input, output, session) {
     }
   )
 
-
+  # tutorial tab plot selection --------
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$all
+    },
+    handlerExpr = {
+      if(input$all == "plots"){
+        showModal(modalDialog(
+          title = "Tutorial",
+          "Select the stat that you want to use to summarize the bins, the duration of the bins,
+          the metric that you want to use and then, press visualize. You can use 'ALL' metrics or select just some of them.
+          You are free to play with the parameters and make as many plots as you want!",
+          footer = modalButton("OK"),
+          size = "m",
+          easyClose = TRUE
+        ))}
+    })
 
   # calculate and show figs-------
   observeEvent(
@@ -626,6 +655,15 @@ server <- function(input, output, session) {
           )
         }, plots)
         rc_plots(plots)
+        
+        showModal(modalDialog(
+          title = "Tutorial",
+          "Click on the tabs with the subject name to see the graphs. 
+          You can save the last plots rendered by clicking on the save button!",
+          footer = modalButton("OK"),
+          size = "m",
+          easyClose = TRUE
+        ))
       }
     }
   )
@@ -638,7 +676,6 @@ server <- function(input, output, session) {
     handlerExpr = {
 
       # save data
-      browser()
       withProgress(
         expr = {
           plots <- rc_plots()
@@ -660,13 +697,7 @@ server <- function(input, output, session) {
     }
   )
 }
-# https://gist.github.com/wch/5436415/
-# https://stackoverflow.com/questions/35737029/how-to-generate-output-for-multi-plots-within-a-loop-in-shiny-app
-# Run the application
+
 shinyApp(ui = ui, server = server)
 
-# prova = "ciao"
-# assign(prova, "OK")
-# title_t <- "subj1"
-#
-# assign(paste0("output$",title_t), "ciao")
+
