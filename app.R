@@ -8,13 +8,13 @@ library(shinythemes)
 library(ggplot2)
 library(shinycssloaders)
 library(shinyjs)
+library(purrr)
 
 
 
 
-  
 
-# if("rvent" %in% installed.packages()[,"Package"] == FALSE) 
+# if("rvent" %in% installed.packages()[,"Package"] == FALSE)
 
 
 # NOTE DEMO NEED A PATH!!!!!!!!!
@@ -33,9 +33,9 @@ library(shinyjs)
 
 # UI-------------
 ui <- fluidPage(
-  
-  
-  useShinyjs(),  
+
+
+  useShinyjs(),
   theme = shinytheme("paper"),
   tags$head(tags$style(
     HTML("
@@ -117,53 +117,49 @@ ui <- fluidPage(
               multiple = TRUE
             )
           ),
-          br(),
-          br(),
-          br(),
-          br(),
 
           conditionalPanel(
             condition = "output.hidedt == false",
             DTOutput("tsd_sf")
           ),
-          br(),
-          br(),
-          br(),
-          br(),
+
           wellPanel(
-          div(
-            style = "display: inline-block;vertical-align:top;",
-            conditionalPanel(
-              condition = "output.hidestat",
-              checkboxGroupButtons(
-                inputId = "vent_stat",
-                label = "stats",
-                choices = c(
-                  "mean",
-                  "median",
-                  "n",
-                  "sd"
+            div(
+              style = "display: inline-block;vertical-align:top;",
+              conditionalPanel(
+                condition = "output.hidestat",
+                checkboxGroupButtons(
+                  inputId = "vent_stat",
+                  label = "stats",
+                  choices = c(
+                    "mean",
+                    "median",
+                    "n",
+                    "sd"
+                  )
                 )
               )
+            ),
+
+            div(
+              style = "display: inline-block;vertical-align:top;",
+              conditionalPanel(
+                condition = "output.hidestat",
+                numericInput("bin",
+                  label = "bin (min)", value = 1, min = 1, width = "100px"
+                ),
+              )
+            ),
+            div(
+              style = "display: inline-block;vertical-align:top;",
+              conditionalPanel(
+                condition = "output.hidestat",
+                numericInput("baseline",
+                  label = "baseline (min)", value = 30, min = 1, width = "100px"
+                ),
+              ),
             )
           ),
-
-          div(
-            style = "display: inline-block;vertical-align:top;",
-            conditionalPanel(
-              condition = "output.hidestat",
-              numericInput("bin",
-                label = "bin (min)", value = 1, min = 1, width = "100px"
-              ),
-            )),
-          div(
-            style = "display: inline-block;vertical-align:top;",
-            conditionalPanel(
-              condition = "output.hidestat",
-              numericInput("baseline",
-                label = "baseline (min)", value = 30, min = 1, width = "100px"
-              ),
-            ),)),
           conditionalPanel(
             condition = "output.hidestat",
             actionButton("summarize", label = "visualize summary", width = "100%")
@@ -182,70 +178,67 @@ ui <- fluidPage(
     ),
 
     # PLOTS--------------------------------------------------------------------
-      tabPanel(
-        title = "plots", 
-           sidebarLayout(
-             # side panel-----------------
-                sidebarPanel(
-                  width = 4,
- 
-                  switchInput("tutorial", label = "Tutorial", value = TRUE),
-                    
+    tabPanel(
+      title = "plots",
+      sidebarLayout(
+        # side panel-----------------
+        sidebarPanel(
+          width = 4,
 
-                  radioGroupButtons(
-                    inputId = "stat_plot",
-                    label = "stat",
-                    choices = c(
-                      "mean",
-                      "median")
-                  ),
-                  br(),
-                  sliderInput("bin_plot",
-                    label = "Slider: bin duration (min)", min = 0,
-                    max = 30, value = 1
-                  ),
+          switchInput("tutorial", label = "Tutorial", value = TRUE),
 
-                  pickerInput(
-                    inputId = "measures",
-                    label = "Metric", 
-                    choices = "",
-                    multiple = TRUE
-                  ),
-                  wellPanel(
-                    div(
-                      style = "display: inline-block;vertical-align:top;",
-                      actionButton("show_plots", label = "Show Plots")
-                    ),
-                    
-                    div(
-                      style = "display: inline-block;vertical-align:top; float:right;",
-                      conditionalPanel(
-                          condition = "output.saveplots",
-                          actionButton("save_plots", label = "Save Last Plots"))
-                    )
-                  ),
-                ),
-                # main panel-----------------
-                mainPanel(
-                  width = 8,
-                  tabsetPanel(id = "plots_in_plots"
 
-                
-  
+          radioGroupButtons(
+            inputId = "stat_plot",
+            label = "stat",
+            choices = c(
+              "mean",
+              "median"
+            )
+          ),
+          br(),
+          sliderInput("bin_plot",
+            label = "Slider: bin duration (min)", min = 0,
+            max = 30, value = 1
+          ),
+
+          pickerInput(
+            inputId = "measures",
+            label = "Metric",
+            choices = "",
+            multiple = TRUE
+          ),
+          wellPanel(
+            div(
+              style = "display: inline-block;vertical-align:top;",
+              actionButton("show_plots", label = "Show Plots")
+            ),
+
+            div(
+              style = "display: inline-block;vertical-align:top; float:right;",
+              conditionalPanel(
+                condition = "output.saveplots",
+                actionButton("save_plots", label = "Save Last Plots")
               )
-
-          )
+            )
+          ),
+        ),
+        # main panel-----------------
+        mainPanel(
+          width = 8,
+          tabsetPanel(id = "plots_in_plots")
         )
       )
     )
   )
+)
 
 
 
 
 # SERVER-----------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
-  
+
   # initialize -------
   shinyDirChoose(
     input,
@@ -255,14 +248,15 @@ server <- function(input, output, session) {
   )
 
   hideTab("all", "plots")
-  
+
   showModal(modalDialog(
     title = "Tutorial",
     "Click on input button to select iox folder or use DemoData!",
     "You can turn off these notifications with the Tutorial-switch button",
     footer = modalButton("OK"),
     size = "m",
-    easyClose = TRUE))
+    easyClose = TRUE
+  ))
 
 
   # reactive val-----------------------
@@ -271,8 +265,13 @@ server <- function(input, output, session) {
   c_comments <- reactiveValues()
   vent <- reactiveVal()
   rc_ses <- reactiveVal()
+
+  rc_plots <- reactiveVal()
+  summarized_dat <- reactiveVal()
   
-  rc_plots  <- reactiveVal()
+  # this is to create unique output names 
+  # for plots that will be rendered
+  rc_tabs <- reactiveVal(0)
 
 
   # hide --------------------------
@@ -293,13 +292,13 @@ server <- function(input, output, session) {
   output$hidestat <- reactive({
     is.na(p_hide$stat)
   })
-  
+
   # save summary
   p_hide$stat <- 1
   output$saveplots <- reactive({
     is.na(p_hide$stat)
   })
-  
+
   output$save_summary <- reactive({
     p_hide$save_summary
   })
@@ -311,9 +310,6 @@ server <- function(input, output, session) {
   outputOptions(output, "saveplots", suspendWhenHidden = FALSE)
   outputOptions(output, "save_summary", suspendWhenHidden = FALSE)
 
-
-
-  summarized_dat <- reactiveVal()
 
   # license --------
   observeEvent(
@@ -363,7 +359,8 @@ server <- function(input, output, session) {
             "Click on the menu, indentify drug injections and press OK!",
             footer = modalButton("OK"),
             size = "m",
-            easyClose = TRUE))
+            easyClose = TRUE
+          ))
         }
 
         p_hide$okb <- 1
@@ -387,21 +384,19 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
-     
-    
       url <- "https://poaf2q.bn.files.1drv.com/y4mM0GOMscIPKhDpSnn_Kt1LcuNWWD0jpMKF6iZn0wt3M5hgYsgqaiqHXk-QQNGbEQBO8q2Q4OW3Jl6sz95MY-GV8CBUrNYNuayofF7UskjA1Tln2OWCfpyfFy13nGkqvn4M4E4o_ogqo5fcd1CG9n8Cx3RiIev73cnCOLM5uRYivDZ_b2fyGb7tIx-qO515kg7IEDP4qTiduQDFjEi1JNl2Lgs6qP0WqmFQ3_QNXt-WU4/all_data.rda?download&psid=1"
-   
+
       tempos <- tempfile()
       download.file(url, destfile = tempos, mode = "wb")
       load(tempos)
       if (input$tutorial == TRUE) {
-        
         showModal(modalDialog(
           title = "Tutorial",
           "Click on the menu, indentify drug injections and press OK!",
           footer = modalButton("OK"),
           size = "m",
-          easyClose = TRUE))
+          easyClose = TRUE
+        ))
       }
       p_hide$okb <- 1
       choose_comments <- tidyr::unite(all_data$tsd_s,
@@ -429,13 +424,13 @@ server <- function(input, output, session) {
     handlerExpr = {
       if (is.null(input$com_sub)) {
         if (input$tutorial == TRUE) {
-          
           showModal(modalDialog(
             title = "Tutorial",
             "Please select something!",
             footer = modalButton("OK"),
             size = "m",
-            easyClose = TRUE))
+            easyClose = TRUE
+          ))
         }
 
         p_hide$DT <- NA
@@ -459,7 +454,8 @@ server <- function(input, output, session) {
               "Please, fill up missing values!",
               footer = modalButton("OK"),
               size = "m",
-              easyClose = TRUE))
+              easyClose = TRUE
+            ))
           }
 
           p_hide$DT <- 1
@@ -472,7 +468,8 @@ server <- function(input, output, session) {
   )
 
   # edit table with comments -----------
-  observeEvent(ignoreNULL = TRUE,
+  observeEvent(
+    ignoreNULL = TRUE,
     eventExpr = {
       input$tsd_sf_cell_edit
     },
@@ -482,13 +479,13 @@ server <- function(input, output, session) {
         p_hide$stat <- NA
 
         if (input$tutorial == TRUE) {
-
           showModal(modalDialog(
             title = "Tutorial",
-            "Now select stats bin and baseline!",
+            "Now scroll down and select stats, bin and baseline!",
             footer = modalButton("OK"),
             size = "m",
-            easyClose = TRUE))
+            easyClose = TRUE
+          ))
         }
       }
     }
@@ -507,7 +504,8 @@ server <- function(input, output, session) {
             "Choose at least one stat!",
             footer = modalButton("OK"),
             size = "m",
-            easyClose = TRUE))
+            easyClose = TRUE
+          ))
         }
       } else {
         sess1 <- normalizetime_vent(
@@ -519,7 +517,7 @@ server <- function(input, output, session) {
 
         rc_ses(sess1)
         showTab("all", "plots")
-        
+
         vent_all <- summarize_vent(sess1, inter = FALSE, baseline = input$baseline, bin = input$bin, form = input$vent_stat)
 
         summarized_dat(vent_all)
@@ -534,18 +532,18 @@ server <- function(input, output, session) {
             autoWidth = TRUE
           )
         )
-        
+
         p_hide$save_summary <- 1
-        
+
         # choices tab plots
         measure_choices <- c("ALL", levels(vent_all$dat_vent$measure))
         updateSelectInput(session, "measures",
-                          choices = measure_choices)
-        
+          choices = measure_choices
+        )
       }
     }
   )
-  
+
   # save summary-------
   observeEvent(
     ignoreNULL = TRUE,
@@ -553,13 +551,12 @@ server <- function(input, output, session) {
       input$save_summary
     },
     handlerExpr = {
-      
       vent_all <- summarized_dat()
-      
+
       file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
       file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
       writexl::write_xlsx(vent_all$dat_fs, file_path)
-      
+
       sendSweetAlert(
         session = session,
         title = "Success!",
@@ -567,54 +564,71 @@ server <- function(input, output, session) {
         type = "success",
         width = "200px"
       )
-      
-      
     }
   )
-  
 
-  
-  # show figs-------
+
+
+  # calculate and show figs-------
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
       input$show_plots
     },
     handlerExpr = {
+      if (is.null(input$measures)) {
+        showModal(modalDialog(
+          title = "Tutorial",
+          "Please select a Metric!",
+          footer = modalButton("OK"),
+          size = "m",
+          easyClose = TRUE
+        ))
+      } else {
+        measure <- input$measures
+        if (length(measure) > 1 & "ALL" %in% measure) {
+          measure <- "ALL"
+        }
 
-      measure <- input$measures
-      if(length(measure) > 1 & "ALL" %in% measure) {
-        measure <- "ALL"
-      }
-      
-      p_hide$saveplots <- 1
-      plots <- session_plots(rc_ses(), path = dpath(), inter = FALSE, 
-                             vent_stat = input$stat_plot, bin = input$bin_plot,
-                             measure = measure,
-                             
-                             
-                             fsave = FALSE)
-      rc_plots(plots)
+        p_hide$saveplots <- 1
+        plots <- session_plots(rc_ses(),
+          path = dpath(), inter = FALSE,
+          vent_stat = input$stat_plot, bin = input$bin_plot,
+          measure = measure,
 
-     
+          fsave = FALSE
+        )
+ 
         # thanks mr flick
-           Map(function(x){
-              title_t  <- paste(x$data$subj[1], input$stat_plot, sep = " ")
-              plot_subj <- paste(x$data$subj[1], 
-                                 input$stat_plot, 
-                                 input$bin_plot,
-                                 input$baseline,
-                                 paste(measure, collapse = "_"),
-                                 sep = "_")
-              output[[plot_subj]] <- renderPlot({x})
-            
-             appendTab(inputId = "plots_in_plots",
-             tabPanel(title = title_t, 
-                      plotOutput(plot_subj) %>% withSpinner() 
-                      ))
-             }, plots)
+        Map(function(x) {
+          tab_n <-   rc_tabs()
+          tab_n <- tab_n + 1
+          rc_tabs(tab_n)
+          title_t <- paste(x$data$subj[1], input$stat_plot, sep = " ")
+          plot_subj <- paste(x$data$subj[1],
+            input$stat_plot,
+            input$bin_plot,
+            input$baseline,
+            paste(measure, collapse = "_"),
+            tab_n,
+            sep = "_"
+          )
+          output[[plot_subj]] <- renderPlot({
+            x
+          })
+
+          appendTab(
+            inputId = "plots_in_plots",
+            tabPanel(
+              title = title_t,
+              plotOutput(plot_subj) %>% withSpinner()
+            )
+          )
+        }, plots)
+        rc_plots(plots)
       }
-    )
+    }
+  )
   # save figs------
   observeEvent(
     ignoreNULL = TRUE,
@@ -622,17 +636,20 @@ server <- function(input, output, session) {
       input$save_plots
     },
     handlerExpr = {
-      
+
       # save data
+      browser()
       withProgress(
         expr = {
           plots <- rc_plots()
-          lapply(plots, function(dat){
+          lapply(plots, function(dat) {
             file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
             file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
             ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
-          })}, message = "Computing...please wait")
-      
+          })
+        }, message = "Computing...please wait"
+      )
+
       sendSweetAlert(
         session = session,
         title = "Success!",
@@ -640,9 +657,8 @@ server <- function(input, output, session) {
         type = "success",
         width = "200px"
       )
-      
-    })
-  
+    }
+  )
 }
 # https://gist.github.com/wch/5436415/
 # https://stackoverflow.com/questions/35737029/how-to-generate-output-for-multi-plots-within-a-loop-in-shiny-app
@@ -652,5 +668,5 @@ shinyApp(ui = ui, server = server)
 # prova = "ciao"
 # assign(prova, "OK")
 # title_t <- "subj1"
-# 
+#
 # assign(paste0("output$",title_t), "ciao")
