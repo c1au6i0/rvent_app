@@ -66,8 +66,6 @@ ui <- fluidPage(
         # side panel------------
         sidebarPanel(
           width = 6,
-
-
           wellPanel(
             div(
               style = "display: inline-block;vertical-align:top;",
@@ -231,7 +229,7 @@ server <- function(input, output, session) {
   shinyDirChoose(
     input,
     "dir",
-    roots = c(home = "~"),
+    roots = c(home = '~'), 
     filetypes = c("txt", "tsv", "csv")
   )
 
@@ -414,6 +412,8 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
+      
+    drive_auth_configure(api_key = "xxxxxx")
       withProgress(
         drive_download(
           "all_data.rds",
