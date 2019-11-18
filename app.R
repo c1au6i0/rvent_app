@@ -1,12 +1,11 @@
-# rvent_app v0.0.1.900
+# rvent_app v0.1.0.900
 # Baltimore (MD), November 2019
 # Claudio Zanettini
-
+library(devtools)
 library(DT)
 library(ggplot2)
 library(googledrive)
 library(RCurl)
-library(rvent)
 library(shiny)
 library(shinyFiles)
 library(shinyjs)
@@ -14,10 +13,10 @@ library(shinycssloaders)
 library(shinythemes)
 library(shinyWidgets)
 
-# Shiny.setInputValue
-# if("rvent" %in% installed.packages()[,"Package"] == FALSE)
-# https://shiny.rstudio.com/articles/communicating-with-js.html
-# https://stackoverflow.com/questions/43267911/change-the-input-value-in-shiny-from-server
+if("rvent" %in% installed.packages()[,"Package"] == FALSE){
+  devtools::install_github("c1au6i0/rvent")
+}
+library(rvent)
 
 # UI-------------
 ui <- fluidPage(
@@ -227,7 +226,6 @@ ui <- fluidPage(
 
 # SERVER-----------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
-  
   session$onSessionEnded(stopApp)
   # initialize -------
   shinyDirChoose(
@@ -259,7 +257,7 @@ server <- function(input, output, session) {
       updateSwitchInput(session, "tutorial2", value = input$tutorial)
     }
   )
-  
+
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
@@ -269,22 +267,22 @@ server <- function(input, output, session) {
       updateSwitchInput(session, "tutorial", value = input$tutorial2)
     }
   )
-  
-  
-  
+
+
+
   # reactive val-----------------------
   dpath <- reactiveVal()
   dir <- reactive(input$dir)
   c_comments <- reactiveValues()
   vent <- reactiveVal()
   rc_ses <- reactiveVal()
-
   rc_plots <- reactiveVal()
   summarized_dat <- reactiveVal()
-  
-  # this is to create unique output names 
+  # this is to create unique output names
   # for plots that will be rendered
   rc_tabs <- reactiveVal(0)
+
+  demo_imp <- reactiveVal() # has 2 possible value: demo or imp (demo or imported)
 
 
   # hide --------------------------
@@ -343,7 +341,26 @@ server <- function(input, output, session) {
     }
   )
 
+  # imported data or demo?----
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$dir
+    },
+    handlerExpr = {
+      demo_imp("imp")
+    }
+  )
 
+  observeEvent(
+    ignoreNULL = TRUE,
+    eventExpr = {
+      input$demo
+    },
+    handlerExpr = {
+      demo_imp("demo")
+    }
+  )
 
   # get the iox files-----
   observeEvent(
@@ -352,7 +369,6 @@ server <- function(input, output, session) {
       input$dir
     },
     handlerExpr = {
-      
       if (!"path" %in% names(dir())) {
         return()
       }
@@ -398,14 +414,16 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
-
-      drive_download(
-        "dat_vent.rds",
-        path = "temp.RDS",
-        overwrite = TRUE
+      withProgress(
+        drive_download(
+          "all_data.rds",
+          path = "temp.RDS",
+          overwrite = TRUE
+        ),
+        message = "Loading the data...please wait"
       )
-      
-     all_data <- readRDS("temp.RDS")
+
+      all_data <- readRDS("temp.RDS")
 
       if (input$tutorial == TRUE) {
         showModal(modalDialog(
@@ -516,13 +534,13 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
       if (is.null(input$vent_stat)) {
-          showModal(modalDialog(
-            title = "Tutorial",
-            "Choose at least one stat!",
-            footer = modalButton("OK"),
-            size = "m",
-            easyClose = TRUE
-          ))
+        showModal(modalDialog(
+          title = "Tutorial",
+          "Choose at least one stat!",
+          footer = modalButton("OK"),
+          size = "m",
+          easyClose = TRUE
+        ))
       } else {
         sess1 <- normalizetime_vent(
           dat = vent(),
@@ -534,7 +552,25 @@ server <- function(input, output, session) {
         rc_ses(sess1)
         showTab("all", "plots")
 
-        vent_all <- summarize_vent(sess1, inter = FALSE, baseline = input$baseline, bin = input$bin, form = input$vent_stat)
+        data_origin <- demo_imp()
+        if (data_origin == "demo") {
+          vent_all <- summarize_vent(sess1,
+            inter = FALSE,
+            baseline =
+              input$baseline,
+            bin = input$bin,
+            form = input$vent_stat,
+            filter_val = FALSE
+          )
+        } else {
+          vent_all <- summarize_vent(sess1,
+            inter = FALSE,
+            baseline =
+              input$baseline,
+            bin = input$bin,
+            form = input$vent_stat
+          )
+        }
 
         summarized_dat(vent_all)
 
@@ -551,7 +587,7 @@ server <- function(input, output, session) {
 
         # show save summary button
         p_hide$save_summary <- 1
-        
+
         if (input$tutorial == TRUE) {
           showModal(modalDialog(
             title = "Tutorial",
@@ -560,8 +596,9 @@ server <- function(input, output, session) {
             footer = modalButton("OK"),
             size = "m",
             easyClose = TRUE
-          ))}
-        
+          ))
+        }
+
         # choices tab plots
         measure_choices <- c("ALL", levels(vent_all$dat_vent$measure))
         updateSelectInput(session, "measures",
@@ -578,18 +615,28 @@ server <- function(input, output, session) {
       input$save_summary
     },
     handlerExpr = {
-      vent_all <- summarized_dat()
-      file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
-      file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-      writexl::write_xlsx(vent_all$dat_fs, file_path)
+      if (demo_imp() == "imp") {
+        vent_all <- summarized_dat()
+        file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
+        file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+        writexl::write_xlsx(vent_all$dat_fs, file_path)
 
-      sendSweetAlert(
-        session = session,
-        title = "Success!",
-        text = "Excel file in iox folder",
-        type = "success",
-        width = "200px"
-      )
+        sendSweetAlert(
+          session = session,
+          title = "Success!",
+          text = "Excel file in iox folder",
+          type = "success",
+          width = "200px"
+        )
+      } else {
+        sendSweetAlert(
+          session = session,
+          title = "Opsss!",
+          text = "This function is not available for DemoData. Sorry bro!",
+          type = "warning",
+          width = "400px"
+        )
+      }
     }
   )
 
@@ -600,18 +647,21 @@ server <- function(input, output, session) {
       input$all
     },
     handlerExpr = {
-      if(input$tutorial2 == TRUE){
-          if(input$all == "plots"){
-            showModal(modalDialog(
-              title = "Tutorial",
-              "Select the stat that you want to use to summarize the bins, the duration of the bins,
+      if (input$tutorial2 == TRUE) {
+        if (input$all == "plots") {
+          showModal(modalDialog(
+            title = "Tutorial",
+            "Select the stat that you want to use to summarize the bins, the duration of the bins,
               the metric that you want to use and then, press visualize. You can use 'ALL' metrics or select just some of them.
               You are free to play with the parameters and make as many plots as you want!",
-              footer = modalButton("OK"),
-              size = "m",
-              easyClose = TRUE
-            ))}}
-    })
+            footer = modalButton("OK"),
+            size = "m",
+            easyClose = TRUE
+          ))
+        }
+      }
+    }
+  )
 
   # calculate and show figs-------
   observeEvent(
@@ -635,17 +685,28 @@ server <- function(input, output, session) {
         }
 
         p_hide$saveplots <- 1
-        plots <- session_plots(rc_ses(),
-          path = dpath(), inter = FALSE,
-          vent_stat = input$stat_plot, bin = input$bin_plot,
-          measure = measure,
 
-          fsave = FALSE
-        )
- 
+        data_origin <- demo_imp()
+        if (data_origin == "demo") {
+          plots <- session_plots(rc_ses(),
+            path = NULL, inter = FALSE,
+            vent_stat = input$stat_plot, bin = input$bin_plot,
+            measure = measure,
+            fsave = FALSE,
+            filter_vals = FALSE
+          )
+        } else {
+          plots <- session_plots(rc_ses(),
+            path = dpath(), inter = FALSE,
+            vent_stat = input$stat_plot, bin = input$bin_plot,
+            measure = measure,
+            fsave = FALSE
+          )
+        }
+
         # thanks mr flick
         Map(function(x) {
-          tab_n <-   rc_tabs()
+          tab_n <- rc_tabs()
           tab_n <- tab_n + 1
           rc_tabs(tab_n)
           title_t <- paste(x$data$subj[1], input$stat_plot, sep = " ")
@@ -670,16 +731,29 @@ server <- function(input, output, session) {
           )
         }, plots)
         rc_plots(plots)
-        
-        if(input$tutorial2 == TRUE){
-        showModal(modalDialog(
-          title = "Tutorial",
-          "Click on the tabs with the subject name to see the graphs. 
+
+        if (input$tutorial2 == TRUE) {
+          if (demo_imp() == "imp") {
+            showModal(modalDialog(
+              title = "Tutorial",
+              "Click on the tabs with the subject name to see the graphs. 
           You can save the last plots rendered by clicking on the save button!",
-          footer = modalButton("OK"),
-          size = "m",
-          easyClose = TRUE
-        ))}
+              footer = modalButton("OK"),
+              size = "m",
+              easyClose = TRUE
+            ))
+          } else {
+            showModal(modalDialog(
+              title = "Tutorial",
+              "Click on the tabs with the subject name to see the graphs. 
+               The data might look a little bit flat...that is because they are indeed random-normal values
+               created with the function 'runif'. If you want real data, you got to do the experiment yourself!",
+              footer = modalButton("OK"),
+              size = "m",
+              easyClose = TRUE
+            ))
+          }
+        }
       }
     }
   )
@@ -690,30 +764,37 @@ server <- function(input, output, session) {
       input$save_plots
     },
     handlerExpr = {
+      if (demo_imp() == "imp") {
+        # save data
+        withProgress(
+          expr = {
+            plots <- rc_plots()
+            lapply(plots, function(dat) {
+              file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
+              file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+              ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
+            })
+          }, message = "Computing...please wait"
+        )
 
-      # save data
-      withProgress(
-        expr = {
-          plots <- rc_plots()
-          lapply(plots, function(dat) {
-            file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
-            file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-            ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
-          })
-        }, message = "Computing...please wait"
-      )
-
-      sendSweetAlert(
-        session = session,
-        title = "Success!",
-        text = "Plots in iox folder",
-        type = "success",
-        width = "200px"
-      )
+        sendSweetAlert(
+          session = session,
+          title = "Success!",
+          text = "Plots in iox folder",
+          type = "success",
+          width = "200px"
+        )
+      } else {
+        sendSweetAlert(
+          session = session,
+          title = "Opsss!",
+          text = "This function is not available for DemoData. Sorry bro!",
+          type = "warning",
+          width = "400px"
+        )
+      }
     }
   )
 }
 
 shinyApp(ui = ui, server = server)
-
-
