@@ -18,6 +18,9 @@ if("rvent" %in% installed.packages()[,"Package"] == FALSE){
 }
 library(rvent)
 
+# https://stackoverflow.com/questions/40620176/getting-rid-of-the-status-bar-in-file-upload-in-shiny
+
+# REMOVE dpath() input$demo_imp #############
 # UI-------------
 ui <- fluidPage(
 
@@ -40,6 +43,17 @@ ui <- fluidPage(
         text-align: center;
     }
     
+    input::placeholder {
+    text-align: center; 
+    }
+    
+    input { 
+    text-align: center; 
+    }
+    
+    input:-moz-placeholder { 
+    text-align:right; 
+    }
 
     .progress {
             width: 400px;
@@ -51,7 +65,10 @@ ui <- fluidPage(
             text-align: center;
     }
     
-         
+    #save_summary {
+        float:center !important;
+    }
+    
          ")
   )),
 
@@ -77,10 +94,14 @@ ui <- fluidPage(
             )
           ),
 
-          div(
-            style = "display: inline-block;vertical-align:top;",
-            shinyDirButton("dir", "Input directory", "Upload")
-          ),
+
+          fileInput("iox_files", 
+                    label = NULL, 
+                    buttonLabel = "Input files", 
+                    multiple = TRUE, 
+                    accept = c("txt", "tsv", "csv"),
+                    placeholder = "no file uploaded"
+                    ),
 
           div(
             style = "display: inline-block;vertical-align:top;",
@@ -146,13 +167,15 @@ ui <- fluidPage(
               ),
             )
           ),
+          div(style = "display: inline-block;vertical-align:top;",
           conditionalPanel(
             condition = "output.hidestat",
-            actionButton("summarize", label = "visualize summary", width = "100%")
-          ),
+            actionButton("summarize", label = "visualize summary")
+          ), style="float:rcenter"),
+          div(style = "display: inline-block;vertical-align:top;",
           conditionalPanel(
-            condition = "output.save_summary",
-            actionButton("save_summary", label = "save ", width = "100%")
+            condition = "output.save_b",
+            downloadButton("save_summary", "save"), style="float:rcenter"),
           ),
         ),
         # main panel------------
@@ -226,12 +249,12 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   session$onSessionEnded(stopApp)
   # initialize -------
-  shinyDirChoose(
-    input,
-    "dir",
-    roots = c(home = '~'), 
-    filetypes = c("txt", "tsv", "csv")
-  )
+  # shinyDirChoose(
+  #   input,
+  #   "dir",
+  #   roots = c(home = '~'), 
+  #   filetypes = c("txt", "tsv", "csv")
+  # )
 
   hideTab("all", "plots")
 
@@ -270,7 +293,6 @@ server <- function(input, output, session) {
 
   # reactive val-----------------------
   dpath <- reactiveVal()
-  dir <- reactive(input$dir)
   c_comments <- reactiveValues()
   vent <- reactiveVal()
   rc_ses <- reactiveVal()
@@ -308,7 +330,7 @@ server <- function(input, output, session) {
     is.na(p_hide$stat)
   })
 
-  output$save_summary <- reactive({
+  output$save_b <- reactive({
     p_hide$save_summary
   })
 
@@ -317,7 +339,7 @@ server <- function(input, output, session) {
   outputOptions(output, "hidedt", suspendWhenHidden = FALSE)
   outputOptions(output, "hideokb", suspendWhenHidden = FALSE)
   outputOptions(output, "saveplots", suspendWhenHidden = FALSE)
-  outputOptions(output, "save_summary", suspendWhenHidden = FALSE)
+  outputOptions(output, "save_b", suspendWhenHidden = FALSE)
 
 
   # license --------
@@ -343,7 +365,7 @@ server <- function(input, output, session) {
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
-      input$dir
+      input$iox_files
     },
     handlerExpr = {
       demo_imp("imp")
@@ -364,20 +386,12 @@ server <- function(input, output, session) {
   observeEvent(
     ignoreNULL = TRUE,
     eventExpr = {
-      input$dir
+      input$iox_files
     },
     handlerExpr = {
-      if (!"path" %in% names(dir())) {
-        return()
-      }
-      home <- normalizePath("~")
-      datapath <-
-        file.path(home, paste(unlist(dir()$path[-1]), collapse = .Platform$file.sep))
-
-      dpath(datapath)
-
+      
       all_data <- tryCatch(
-        get_iox(iox_folder = datapath, inter = FALSE),
+        get_iox_shiny(iox_files = input$iox_files),
         error = function(c) conditionMessage(c)
       )
       if (is.list(all_data)) {
@@ -608,37 +622,51 @@ server <- function(input, output, session) {
     }
   )
 
+  output$save_summary <- downloadHandler(
+        filename = function() {
+          paste0("summary_", as.character(summarized_dat()$dat_vent$cpu_date[1]), ".xlsx")
+        },
+        content = function(file) {
+          writexl::write_xlsx(summarized_dat()$dat_fs, file)
+        }
+      )
+  
+  
   # save summary-------
-  observeEvent(
-    ignoreNULL = TRUE,
-    eventExpr = {
-      input$save_summary
-    },
-    handlerExpr = {
-      if (demo_imp() == "imp") {
-        vent_all <- summarized_dat()
-        file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
-        file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-        writexl::write_xlsx(vent_all$dat_fs, file_path)
-
-        sendSweetAlert(
-          session = session,
-          title = "Success!",
-          text = "Excel file in iox folder",
-          type = "success",
-          width = "200px"
-        )
-      } else {
-        sendSweetAlert(
-          session = session,
-          title = "Opsss!",
-          text = "This function is not available for DemoData. Sorry bro!",
-          type = "warning",
-          width = "400px"
-        )
-      }
-    }
-  )
+  # observeEvent(
+  #   ignoreNULL = TRUE,
+  #   eventExpr = {
+  #     input$save_summary
+  #   },
+  #   handlerExpr = {
+  #     vent_all <- summarized_dat()
+  #     output$save_summary <- downloadHandler(
+  #       filename = function() {
+  #         paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
+  #       },
+  #       content = function(file) {
+  #         writexl::write_xlsx(summarized_dat()$dat_fs, file)
+  #       }
+  #     )
+  #     
+  #     
+  #     
+  #       # vent_all <- summarized_dat()
+  #       # file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
+  #       # file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+  #       # writexl::write_xlsx(vent_all$dat_fs, file_path)
+  # 
+  #       sendSweetAlert(
+  #         session = session,
+  #         title = "Success!",
+  #         text = "Excel file in iox folder",
+  #         type = "success",
+  #         width = "200px"
+  #       )
+  # 
+  # 
+  #   }
+  # )
 
   # tutorial tab plot selection --------
   observeEvent(
