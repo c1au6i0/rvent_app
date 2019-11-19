@@ -11,7 +11,7 @@
 The rvent\_app is a shiny application developed to import, bin and
 summarized session files obtained with the [SCIREQ
 pletysmograph](https://www.scireq.com/). Under the hood it uses
-functions of tje [rvent package](https://github.com/c1au6i0/rvent).
+functions of the [rvent package](https://github.com/c1au6i0/rvent).
 
 ## App
 
