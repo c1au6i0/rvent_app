@@ -100,7 +100,7 @@ ui <- fluidPage(
                     buttonLabel = "Input files", 
                     multiple = TRUE, 
                     accept = c("txt", "tsv", "csv"),
-                    placeholder = "no file uploaded",
+                    placeholder = "0 upload",
                     width = "50%"
                     ),
               
@@ -326,14 +326,14 @@ server <- function(input, output, session) {
     is.na(p_hide$stat)
   })
 
-  # save summary
-  p_hide$stat <- 1
-  output$saveplots <- reactive({
-    is.na(p_hide$stat)
-  })
-
+  # save summary button
   output$save_b <- reactive({
     p_hide$save_summary
+  })
+  
+ 
+  output$saveplots <- reactive({
+    p_hide$saveplots
   })
 
   # outputOptions --------------MAKE A LIST
@@ -765,46 +765,8 @@ server <- function(input, output, session) {
   )
   
   # https://stackoverflow.com/questions/43663352/r-count-shiny-download-button-clicks
-  # 
-  
-  
-  # observeEvent(
-  #   ignoreNULL = TRUE,
-  #   eventExpr = {
-  #     input$save_plots
-  #   },
-  #   handlerExpr = {
-  #     if (demo_imp() == "imp") {
-  #       # save data
-  #       withProgress(
-  #         expr = {
-  #           plots <- rc_plots()
-  #           lapply(plots, function(dat) {
-  #             file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
-  #             file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-  #             ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
-  #           })
-  #         }, message = "Computing...please wait"
-  #       )
-  # 
-  #       sendSweetAlert(
-  #         session = session,
-  #         title = "Success!",
-  #         text = "Plots in iox folder",
-  #         type = "success",
-  #         width = "200px"
-  #       )
-  #     } else {
-  #       sendSweetAlert(
-  #         session = session,
-  #         title = "Opsss!",
-  #         text = "This function is not available for DemoData. Sorry bro!",
-  #         type = "warning",
-  #         width = "400px"
-  #       )
-  #     }
-  #   }
-  # )
+
+
 }
 
 shinyApp(ui = ui, server = server)
