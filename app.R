@@ -1,4 +1,4 @@
-# rvent_app v0.1.0.900
+# rvent_app v0.2.0.900
 # Baltimore (MD), November 2019
 # Claudio Zanettini
 library(devtools)
@@ -18,7 +18,6 @@ if("rvent" %in% installed.packages()[,"Package"] == FALSE){
 }
 library(rvent)
 
-# https://stackoverflow.com/questions/40620176/getting-rid-of-the-status-bar-in-file-upload-in-shiny
 
 # REMOVE dpath() input$demo_imp #############
 # UI-------------
@@ -262,8 +261,9 @@ server <- function(input, output, session) {
 
   showModal(modalDialog(
     title = "Tutorial",
-    "Click on input button to select iox folder or use DemoData!",
-    "You can turn off these notifications with the Tutorial-switch button",
+    "Click on input button to select iox files or use DemoData!",
+    "If you selct by mistake a file that is not iox, don't worry, it will be filtered out!",
+    "You can turn off these notifications with the Tutorial-switch button.",
     footer = modalButton("OK"),
     size = "m",
     easyClose = TRUE
@@ -444,7 +444,7 @@ server <- function(input, output, session) {
       if (input$tutorial == TRUE) {
         showModal(modalDialog(
           title = "Tutorial",
-          "Click on the menu, indentify drug injections and press OK!",
+          "Click on the blank menu below, indentify drug injections and press OK!",
           footer = modalButton("OK"),
           size = "m",
           easyClose = TRUE
@@ -503,7 +503,7 @@ server <- function(input, output, session) {
           if (input$tutorial == TRUE) {
             showModal(modalDialog(
               title = "Tutorial",
-              "Please, fill up missing values!",
+              "Please, fill up any missing value in the table!",
               footer = modalButton("OK"),
               size = "m",
               easyClose = TRUE
@@ -533,7 +533,8 @@ server <- function(input, output, session) {
         if (input$tutorial == TRUE) {
           showModal(modalDialog(
             title = "Tutorial",
-            "Now scroll down and select stats, bin and baseline!",
+            "Now scroll down and select stats, bin and baseline. 
+             You can select multiple stats!",
             footer = modalButton("OK"),
             size = "m",
             easyClose = TRUE
@@ -692,7 +693,7 @@ server <- function(input, output, session) {
           )
         } else {
           plots <- session_plots(rc_ses(),
-            path = dpath(), inter = FALSE,
+            path = NULL, inter = FALSE,
             vent_stat = input$stat_plot, bin = input$bin_plot,
             measure = measure,
             fsave = FALSE
