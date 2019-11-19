@@ -3,15 +3,17 @@
 # Claudio Zanettini
 library(devtools)
 library(DT)
+library(httr)
 library(ggplot2)
-library(googledrive)
 library(RCurl)
+library(rdrop2)
 library(shiny)
 library(shinyFiles)
 library(shinyjs)
 library(shinycssloaders)
 library(shinythemes)
 library(shinyWidgets)
+library(vroom)
 
 if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
@@ -429,17 +431,14 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
       
-    drive_auth_configure(api_key = "xxxxxx")
+      drop_auth(rdstoken = "token.rds")
+      
       withProgress(
-        drive_download(
-          "all_data.rds",
-          path = "temp.RDS",
-          overwrite = TRUE
-        ),
+        drop_download('all_data.rds'),
         message = "Loading the data...please wait"
       )
-
-      all_data <- readRDS("temp.RDS")
+      
+      all_data <- readRDS("all_data.rds")
 
       if (input$tutorial == TRUE) {
         showModal(modalDialog(
@@ -592,10 +591,11 @@ server <- function(input, output, session) {
         summarized_dat(vent_all)
 
         output$summarized_dat <- renderDT(vent_all$dat_sml,
+          filter = "top",
           selection = "none",
           server = F,
           editable = F,
-          fillContainer = FALSE,
+          # fillContainer = FALSE,
           options = list(
             pageLength = 12,
             autoWidth = TRUE
