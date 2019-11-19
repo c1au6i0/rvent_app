@@ -60,9 +60,6 @@ Note that subject are expected to get one injection per session.
 
 ### Example file
 
-This is an example of a recording file (containing randomly generated
-data).
-
-<iframe src="https://onedrive.live.com/embed?cid=BCC43C613C51DA6D&amp;resid=BCC43C613C51DA6D%21141111&amp;authkey=AFBy2KArg1drDck" width="98" height="120" frameborder="0" scrolling="no">
-
-</iframe>
+This is an example of a [recording
+file](https://1drv.ms/t/s!Am3aUTxhPMS8iM43UVMJXhO4mNCecw?e=ANMwWP)
+(containing randomly generated data).
