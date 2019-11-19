@@ -5,7 +5,6 @@ library(devtools)
 library(DT)
 library(httr)
 library(ggplot2)
-library(RCurl)
 library(rdrop2)
 library(shiny)
 library(shinyFiles)
@@ -263,8 +262,8 @@ server <- function(input, output, session) {
 
   showModal(modalDialog(
     title = "Tutorial",
-    "Click on input button to select iox files or use DemoData!",
-    "If you selct by mistake a file that is not iox, don't worry, it will be filtered out!",
+    "Click on the input button to select iox files or use DemoData!",
+    "If you select by mistake a file that is not an iox.txt, don't worry, it will be filtered out!",
     "You can turn off these notifications with the Tutorial-switch button.",
     footer = modalButton("OK"),
     size = "m",
@@ -434,7 +433,7 @@ server <- function(input, output, session) {
       drop_auth(rdstoken = "token.rds")
       
       withProgress(
-        drop_download('all_data.rds'),
+        drop_download('all_data.rds', overwrite = TRUE),
         message = "Loading the data...please wait"
       )
       
