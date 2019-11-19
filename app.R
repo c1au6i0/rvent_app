@@ -14,7 +14,7 @@ library(shinythemes)
 library(shinyWidgets)
 library(vroom)
 
-if("rvent" %in% installed.packages()[,"Package"] == FALSE){
+if ("rvent" %in% installed.packages()[, "Package"] == FALSE) {
   devtools::install_github("c1au6i0/rvent")
 }
 library(rvent)
@@ -95,15 +95,15 @@ ui <- fluidPage(
           ),
 
 
-          fileInput("iox_files", 
-                    label = NULL, 
-                    buttonLabel = "Input files", 
-                    multiple = TRUE, 
-                    accept = c("txt", "tsv", "csv"),
-                    placeholder = "0 upload",
-                    width = "50%"
-                    ),
-              
+          fileInput("iox_files",
+            label = NULL,
+            buttonLabel = "Input files",
+            multiple = TRUE,
+            accept = c("txt", "tsv", "csv"),
+            placeholder = "0 upload",
+            width = "50%"
+          ),
+
 
           div(
             style = "display: inline-block;vertical-align:top;",
@@ -169,15 +169,19 @@ ui <- fluidPage(
               ),
             )
           ),
-          div(style = "display: inline-block;vertical-align:top;",
-          conditionalPanel(
-            condition = "output.hidestat",
-            actionButton("summarize", label = "visualize summary")
-          ), style="float:rcenter"),
-          div(style = "display: inline-block;vertical-align:top;",
-          conditionalPanel(
-            condition = "output.save_b",
-            downloadButton("save_summary", "save"), style="float:center"),
+          div(
+            style = "display: inline-block;vertical-align:top;",
+            conditionalPanel(
+              condition = "output.hidestat",
+              actionButton("summarize", label = "visualize summary")
+            ), style = "float:rcenter"
+          ),
+          div(
+            style = "display: inline-block;vertical-align:top;",
+            conditionalPanel(
+              condition = "output.save_b",
+              downloadButton("save_summary", "save"), style = "float:center"
+            ),
           ),
         ),
         # main panel------------
@@ -254,7 +258,7 @@ server <- function(input, output, session) {
   # shinyDirChoose(
   #   input,
   #   "dir",
-  #   roots = c(home = '~'), 
+  #   roots = c(home = '~'),
   #   filetypes = c("txt", "tsv", "csv")
   # )
 
@@ -331,8 +335,8 @@ server <- function(input, output, session) {
   output$save_b <- reactive({
     p_hide$save_summary
   })
-  
- 
+
+
   output$saveplots <- reactive({
     p_hide$saveplots
   })
@@ -392,7 +396,6 @@ server <- function(input, output, session) {
       input$iox_files
     },
     handlerExpr = {
-      
       all_data <- tryCatch(
         get_iox_shiny(iox_files = input$iox_files),
         error = function(c) conditionMessage(c)
@@ -429,14 +432,13 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
-      
       drop_auth(rdstoken = "token.rds")
-      
+
       withProgress(
-        drop_download('all_data.rds', overwrite = TRUE),
+        drop_download("all_data.rds", overwrite = TRUE),
         message = "Loading the data...please wait"
       )
-      
+
       all_data <- readRDS("all_data.rds")
 
       if (input$tutorial == TRUE) {
@@ -626,14 +628,14 @@ server <- function(input, output, session) {
 
   # save summary ---------------------------
   output$save_summary <- downloadHandler(
-        filename = function() {
-          paste0("summary_", as.character(summarized_dat()$dat_vent$cpu_date[1]), ".xlsx")
-        },
-        content = function(file) {
-          writexl::write_xlsx(summarized_dat()$dat_fs, file)
-        }
-      )
-  
+    filename = function() {
+      paste0("summary_", as.character(summarized_dat()$dat_vent$cpu_date[1]), ".xlsx")
+    },
+    content = function(file) {
+      writexl::write_xlsx(summarized_dat()$dat_fs, file)
+    }
+  )
+
 
   # tutorial tab plot selection --------
   observeEvent(
@@ -755,18 +757,16 @@ server <- function(input, output, session) {
   # save figs------
   output$save_plots <- downloadHandler(
     file = function() {
-      paste0("plot_", as.character(summarized_dat()$dat_vent$cpu_date[1]),"_",rc_tabs(), ".pdf")
+      paste0("plot_", as.character(summarized_dat()$dat_vent$cpu_date[1]), "_", rc_tabs(), ".pdf")
     },
     content = function(file) {
-        pdf(file)
-        print(rc_plots())
-        dev.off()
+      pdf(file)
+      print(rc_plots())
+      dev.off()
     }
   )
-  
+
   # https://stackoverflow.com/questions/43663352/r-count-shiny-download-button-clicks
-
-
 }
 
 shinyApp(ui = ui, server = server)
