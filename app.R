@@ -100,8 +100,10 @@ ui <- fluidPage(
                     buttonLabel = "Input files", 
                     multiple = TRUE, 
                     accept = c("txt", "tsv", "csv"),
-                    placeholder = "no file uploaded"
+                    placeholder = "no file uploaded",
+                    width = "50%"
                     ),
+              
 
           div(
             style = "display: inline-block;vertical-align:top;",
@@ -175,7 +177,7 @@ ui <- fluidPage(
           div(style = "display: inline-block;vertical-align:top;",
           conditionalPanel(
             condition = "output.save_b",
-            downloadButton("save_summary", "save"), style="float:rcenter"),
+            downloadButton("save_summary", "save"), style="float:center"),
           ),
         ),
         # main panel------------
@@ -227,7 +229,7 @@ ui <- fluidPage(
               style = "display: inline-block;vertical-align:top; float:right;",
               conditionalPanel(
                 condition = "output.saveplots",
-                actionButton("save_plots", label = "Save Last Plots")
+                downloadButton("save_plots", "save")
               )
             )
           ),
@@ -298,7 +300,7 @@ server <- function(input, output, session) {
   rc_ses <- reactiveVal()
   rc_plots <- reactiveVal()
   summarized_dat <- reactiveVal()
-  # this is to create unique output names
+  # this is to create unique output number
   # for plots that will be rendered
   rc_tabs <- reactiveVal(0)
 
@@ -622,6 +624,7 @@ server <- function(input, output, session) {
     }
   )
 
+  # save summary ---------------------------
   output$save_summary <- downloadHandler(
         filename = function() {
           paste0("summary_", as.character(summarized_dat()$dat_vent$cpu_date[1]), ".xlsx")
@@ -631,42 +634,6 @@ server <- function(input, output, session) {
         }
       )
   
-  
-  # save summary-------
-  # observeEvent(
-  #   ignoreNULL = TRUE,
-  #   eventExpr = {
-  #     input$save_summary
-  #   },
-  #   handlerExpr = {
-  #     vent_all <- summarized_dat()
-  #     output$save_summary <- downloadHandler(
-  #       filename = function() {
-  #         paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
-  #       },
-  #       content = function(file) {
-  #         writexl::write_xlsx(summarized_dat()$dat_fs, file)
-  #       }
-  #     )
-  #     
-  #     
-  #     
-  #       # vent_all <- summarized_dat()
-  #       # file_name <- paste0("summary_", as.character(vent_all$dat_vent$cpu_date[1]), ".xlsx")
-  #       # file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-  #       # writexl::write_xlsx(vent_all$dat_fs, file_path)
-  # 
-  #       sendSweetAlert(
-  #         session = session,
-  #         title = "Success!",
-  #         text = "Excel file in iox folder",
-  #         type = "success",
-  #         width = "200px"
-  #       )
-  # 
-  # 
-  #   }
-  # )
 
   # tutorial tab plot selection --------
   observeEvent(
@@ -786,43 +753,58 @@ server <- function(input, output, session) {
     }
   )
   # save figs------
-  observeEvent(
-    ignoreNULL = TRUE,
-    eventExpr = {
-      input$save_plots
+  output$save_plots <- downloadHandler(
+    file = function() {
+      paste0("plot_", as.character(summarized_dat()$dat_vent$cpu_date[1]),"_",rc_tabs(), ".pdf")
     },
-    handlerExpr = {
-      if (demo_imp() == "imp") {
-        # save data
-        withProgress(
-          expr = {
-            plots <- rc_plots()
-            lapply(plots, function(dat) {
-              file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
-              file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
-              ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
-            })
-          }, message = "Computing...please wait"
-        )
-
-        sendSweetAlert(
-          session = session,
-          title = "Success!",
-          text = "Plots in iox folder",
-          type = "success",
-          width = "200px"
-        )
-      } else {
-        sendSweetAlert(
-          session = session,
-          title = "Opsss!",
-          text = "This function is not available for DemoData. Sorry bro!",
-          type = "warning",
-          width = "400px"
-        )
-      }
+    content = function(file) {
+        pdf(file)
+        print(rc_plots())
+        dev.off()
     }
   )
+  
+  # https://stackoverflow.com/questions/43663352/r-count-shiny-download-button-clicks
+  # 
+  
+  
+  # observeEvent(
+  #   ignoreNULL = TRUE,
+  #   eventExpr = {
+  #     input$save_plots
+  #   },
+  #   handlerExpr = {
+  #     if (demo_imp() == "imp") {
+  #       # save data
+  #       withProgress(
+  #         expr = {
+  #           plots <- rc_plots()
+  #           lapply(plots, function(dat) {
+  #             file_name <- paste(as.character(dat$data$cpu_date[1]), dat$data$subj[1], dat$data$drug[1], dat$data$dose[1], sep = "_")
+  #             file_path <- paste(dpath(), file_name, sep = .Platform$file.sep)
+  #             ggsave(paste0(file_path, ".pdf"), dat, device = "pdf", width = 30, height = 30, units = "cm")
+  #           })
+  #         }, message = "Computing...please wait"
+  #       )
+  # 
+  #       sendSweetAlert(
+  #         session = session,
+  #         title = "Success!",
+  #         text = "Plots in iox folder",
+  #         type = "success",
+  #         width = "200px"
+  #       )
+  #     } else {
+  #       sendSweetAlert(
+  #         session = session,
+  #         title = "Opsss!",
+  #         text = "This function is not available for DemoData. Sorry bro!",
+  #         type = "warning",
+  #         width = "400px"
+  #       )
+  #     }
+  #   }
+  # )
 }
 
 shinyApp(ui = ui, server = server)
