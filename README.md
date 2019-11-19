@@ -20,7 +20,7 @@ here: <https://rden.shinyapps.io/rvent_app/>
 
 ### Accepted files and recording
 
-The rvent\_app extract some of the metadata from the subject name and
+The `rvent_app` extract some of the metadata from the subject name and
 comments provide in the output file. Thus, it is important to follow
 some rules for recording sessions.
 
