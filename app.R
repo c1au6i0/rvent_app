@@ -217,7 +217,7 @@ ui <- fluidPage(
             max = 30, value = 1
           ),
 
-          pickerInput(
+          selectInput(
             inputId = "measures",
             label = "Metric",
             choices = "",
@@ -397,7 +397,7 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
       all_data <- tryCatch(
-        get_iox_shiny(iox_files = input$iox_files),
+        get_iox(iox_data = input$iox_files, shiny_f = TRUE, inter = FALSE),
         error = function(c) conditionMessage(c)
       )
       if (is.list(all_data)) {
@@ -494,7 +494,11 @@ server <- function(input, output, session) {
           c("subj", "drug", "dose", "unit"),
           fill = "right", extra = "merge"
         )
+        
+        tsd_sf$cpu_date <- as.character(tsd_sf$cpu_date)
+
         tsd_sf[tsd_sf == "NA"] <- NA
+        
         c_comments$tsd_sf <- tsd_sf
         if (sum(is.na(c_comments$tsd_sf)) > 0) {
           output$tsd_sf <- renderDT(tsd_sf, selection = "none", server = F, editable = T)
@@ -616,9 +620,9 @@ server <- function(input, output, session) {
             easyClose = TRUE
           ))
         }
-
+        
         # choices tab plots
-        measure_choices <- c("ALL", levels(vent_all$dat_vent$measure))
+        measure_choices <- c("ALL", as.character(levels(vent_all$dat_vent$measure)))
         updateSelectInput(session, "measures",
           choices = measure_choices
         )
@@ -629,7 +633,7 @@ server <- function(input, output, session) {
   # save summary ---------------------------
   output$save_summary <- downloadHandler(
     filename = function() {
-      paste0("summary_", as.character(summarized_dat()$dat_vent$cpu_date[1]), ".xlsx")
+      paste0("summary_", ".xlsx")
     },
     content = function(file) {
       writexl::write_xlsx(summarized_dat()$dat_fs, file)
@@ -733,7 +737,7 @@ server <- function(input, output, session) {
           if (demo_imp() == "imp") {
             showModal(modalDialog(
               title = "Tutorial",
-              "Click on the tabs with the subject name to see the graphs. 
+              "Click on the tabs with the subject name to see the graphs.
           You can save the last plots rendered by clicking on the save button!",
               footer = modalButton("OK"),
               size = "m",
@@ -742,7 +746,7 @@ server <- function(input, output, session) {
           } else {
             showModal(modalDialog(
               title = "Tutorial",
-              "Click on the tabs with the subject name to see the graphs. 
+              "Click on the tabs with the subject name to see the graphs.
                The data might look a little bit flat...that is because they are indeed random-normal values
                created with the function 'runif'. If you want real data, you got to do the experiment yourself!",
               footer = modalButton("OK"),
