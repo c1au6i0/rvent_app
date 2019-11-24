@@ -425,7 +425,6 @@ server <- function(input, output, session) {
       } else {
         #If error----------
         browser()
-
         sendSweetAlert(session = session, title = "Error!", text = all_data, type = "error")
       }
     }

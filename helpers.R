@@ -8,10 +8,11 @@ library(googledrive)
 drive_auth(email = "cshinyapp@gmail.com")
 drive_auth_configure(api_key = readRDS("API_key.RDS"))
 
-gm_auth(email = "cshinyapp@gmail.com")
+
 gm_auth_configure(key = readRDS("mail_key.RDS"),
                   secret = readRDS("mail_secret.RDS")
                   )
+
 
 
 # send email ------------------------
@@ -26,6 +27,10 @@ send_email <- function(mail_text){
   # If all is good with your draft, then you can send it
   gm_send_message(error_email)
 }
+
+
+
+# snapshot-------------
 
 # save inputs and outputs
 # others : other var to uploads
@@ -57,18 +62,17 @@ get_status <- function(others = NULL){
 # new_folder <- paste("session_errors", Sys.time(), sep = "/")
 # upload status and iox file
 # others R objects to upload
-upload_snapshot <- function(others){
-  new_folder <- paste("session_errors", Sys.time(), sep = "/")
+upload_snapshot <- function(others = NULL){
+  new_folder <- paste("rvent_errors", Sys.time(), sep = "/")
   drive_mkdir(new_folder)
-  files = input$iox_files$datapath
-  lapply(files, drive_upload, path = paste0(new_folder, "/"))
+  iox_files <-  input$iox_files$datapath
+  lapply(iox_files, drive_upload, path = paste0(new_folder, "/"))
   
   status <- get_status()
   all_status <- list(status, others)
   save(all_status, file = "status.RDA")
   drive_upload("status.RDA", path = paste0(new_folder, "/"))
 } 
-
 
 
 
