@@ -1,18 +1,21 @@
-# rvent_app v0.2.1.000
+# rvent_app v0.2.1.100
 # Baltimore (MD), November 2019
 # Claudio Zanettini
 library(devtools)
 library(DT)
 library(httr)
 library(ggplot2)
-library(rdrop2)
 library(shiny)
 library(shinyFiles)
 library(shinyjs)
 library(shinycssloaders)
 library(shinythemes)
+library(shinytest)
 library(shinyWidgets)
 library(vroom)
+
+
+source("helpers.R")
 
 if ("rvent" %in% installed.packages()[, "Package"] == FALSE) {
   devtools::install_github("c1au6i0/rvent")
@@ -20,7 +23,7 @@ if ("rvent" %in% installed.packages()[, "Package"] == FALSE) {
 library(rvent)
 
 
-# REMOVE dpath() input$demo_imp #############
+
 # UI-------------
 ui <- fluidPage(
 
@@ -404,7 +407,7 @@ server <- function(input, output, session) {
         if (input$tutorial == TRUE) {
           showModal(modalDialog(
             title = "Tutorial",
-            "Click on the menu, indentify drug injections and press OK!",
+            "Click on the menu, indentify drug treatments (first injection) and press OK!",
             footer = modalButton("OK"),
             size = "m",
             easyClose = TRUE
@@ -420,6 +423,9 @@ server <- function(input, output, session) {
         vent(all_data$vent)
         c_comments$tsd_s <- choose_comments
       } else {
+        #If error----------
+        browser()
+
         sendSweetAlert(session = session, title = "Error!", text = all_data, type = "error")
       }
     }
@@ -432,8 +438,9 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
+      
       drop_auth(rdstoken = "token.rds")
-
+      
       withProgress(
         drop_download("all_data.rds", overwrite = TRUE),
         message = "Loading the data...please wait"
@@ -494,11 +501,11 @@ server <- function(input, output, session) {
           c("subj", "drug", "dose", "unit"),
           fill = "right", extra = "merge"
         )
-        
+
         tsd_sf$cpu_date <- as.character(tsd_sf$cpu_date)
 
         tsd_sf[tsd_sf == "NA"] <- NA
-        
+
         c_comments$tsd_sf <- tsd_sf
         if (sum(is.na(c_comments$tsd_sf)) > 0) {
           output$tsd_sf <- renderDT(tsd_sf, selection = "none", server = F, editable = T)
@@ -594,7 +601,7 @@ server <- function(input, output, session) {
         }
 
         summarized_dat(vent_all)
-
+        
         output$summarized_dat <- renderDT(vent_all$dat_sml,
           filter = "top",
           selection = "none",
@@ -620,7 +627,7 @@ server <- function(input, output, session) {
             easyClose = TRUE
           ))
         }
-        
+
         # choices tab plots
         measure_choices <- c("ALL", as.character(levels(vent_all$dat_vent$measure)))
         updateSelectInput(session, "measures",
@@ -633,7 +640,7 @@ server <- function(input, output, session) {
   # save summary ---------------------------
   output$save_summary <- downloadHandler(
     filename = function() {
-      paste0("summary_", ".xlsx")
+      paste0("summary", ".xlsx")
     },
     content = function(file) {
       writexl::write_xlsx(summarized_dat()$dat_fs, file)
@@ -686,10 +693,10 @@ server <- function(input, output, session) {
         }
 
         p_hide$saveplots <- 1
-
+        sess1 <- na.omit(rc_ses())
         data_origin <- demo_imp()
         if (data_origin == "demo") {
-          plots <- session_plots(rc_ses(),
+          plots <- session_plots(sess1,
             path = NULL, inter = FALSE,
             vent_stat = input$stat_plot, bin = input$bin_plot,
             measure = measure,
@@ -697,13 +704,14 @@ server <- function(input, output, session) {
             filter_vals = FALSE
           )
         } else {
-          plots <- session_plots(rc_ses(),
+          plots <- session_plots(sess1,
             path = NULL, inter = FALSE,
             vent_stat = input$stat_plot, bin = input$bin_plot,
             measure = measure,
             fsave = FALSE
           )
         }
+        
 
         # thanks mr flick
         Map(function(x) {
