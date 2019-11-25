@@ -14,6 +14,7 @@ library(shinythemes)
 library(shinytest)
 library(shinyWidgets)
 library(vroom)
+library(V8)
 library(rvent)
 
 # authentication ----------
@@ -29,6 +30,7 @@ gm_auth_configure(
 )
 gm_auth(email = "cshinyapp@gmail.com")
 
+jsResetCode <- "shinyjs.reset = function() {history.go(0)}"
 
 # UI-------------
 ui <- fluidPage(
@@ -36,6 +38,7 @@ ui <- fluidPage(
 
   useShinyjs(),
   useShinyalert(),
+  extendShinyjs(text = jsResetCode),
   theme = shinytheme("paper"),
   tags$head(tags$style(
     HTML("
@@ -263,9 +266,8 @@ ui <- fluidPage(
 
 # SERVER-----------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
-  
   source("helpers.R", local = TRUE)
-  
+
   session$onSessionEnded(stopApp)
 
   hideTab("all", "plots")
@@ -406,7 +408,20 @@ server <- function(input, output, session) {
         get_iox(iox_data = input$iox_files, shiny_f = TRUE, inter = FALSE),
         error = function(c) conditionMessage(c)
       )
-      if (is.list(all_data)) {
+
+      # if error--
+      if (is.character(all_data)) {
+        shinyalert("Error!",
+          text = HTML(paste0(
+            "<i> Error: ", all_data, "</i>", "<br>",
+            "<b>Do you want to send an error report to the developers?</b>"
+          )),
+          type = "error",
+          html = TRUE,
+          confirmButtonText = "Yes", showCancelButton = TRUE,
+          cancelButtonText = "No", callbackR = modalCallback
+        )
+      } else {
         if (input$tutorial == TRUE) {
           showModal(modalDialog(
             title = "Tutorial",
@@ -425,16 +440,6 @@ server <- function(input, output, session) {
 
         vent(all_data$vent)
         c_comments$tsd_s <- choose_comments
-      } else {
-        #If error----------
-        shinyalert("Error!", 
-                   text = HTML(paste0( "<i> Error: ", all_data,"</i>", "<br>",
-                   "<b>Do you want to send an error report to the developers?</b>")),
-                   type = "error", 
-                   html = TRUE,
-                   confirmButtonText = "Yes", showCancelButton = TRUE,
-                   cancelButtonText = "No", callbackR = modalCallback)
-        
       }
     }
   )
@@ -446,15 +451,17 @@ server <- function(input, output, session) {
       input$demo
     },
     handlerExpr = {
-      
-      drop_auth(rdstoken = "token.rds")
-      
+
+      id_data <- "15Y2hJuczpqF4q2Op0swfMbqBwPDH418G"
+
       withProgress(
-        drop_download("all_data.rds", overwrite = TRUE),
+        drive_download(file = as_id(id_data), "all_data.rds", overwrite = TRUE),
         message = "Loading the data...please wait"
       )
+      id_data <- "15Y2hJuczpqF4q2Op0swfMbqBwPDH418G"
 
       all_data <- readRDS("all_data.rds")
+      
 
       if (input$tutorial == TRUE) {
         showModal(modalDialog(
@@ -578,11 +585,14 @@ server <- function(input, output, session) {
           easyClose = TRUE
         ))
       } else {
-        sess1 <- normalizetime_vent(
-          dat = vent(),
-          tsd_s = c_comments$tsd_sf,
-          tofill = NULL,
-          baseline = input$baseline
+        sess1 <- tryCatch(
+          normalizetime_vent(
+            dat = vent(),
+            tsd_s = c_comments$tsd_sf,
+            tofill = NULL,
+            baseline = input$baseline
+          ),
+          error = function(c) conditionMessage(c)
         )
 
         rc_ses(sess1)
@@ -599,48 +609,66 @@ server <- function(input, output, session) {
             filter_val = FALSE
           )
         } else {
-          vent_all <- summarize_vent(sess1,
-            inter = FALSE,
-            baseline =
-              input$baseline,
-            bin = input$bin,
-            form = input$vent_stat
-          )
+          vent_all <-
+            tryCatch(
+              summarize_vent(sess1,
+                inter = FALSE,
+                baseline =
+                  input$baseline,
+                bin = input$bin,
+                form = input$vent_stat
+              ),
+              error = function(c) conditionMessage(c)
+            )
         }
 
         summarized_dat(vent_all)
-        
-        output$summarized_dat <- renderDT(vent_all$dat_sml,
-          filter = "top",
-          selection = "none",
-          server = F,
-          editable = F,
-          # fillContainer = FALSE,
-          options = list(
-            pageLength = 12,
-            autoWidth = TRUE
+
+        # if error send error -----
+        if (is.character(sess1) | is.character(summarize_vent)) {
+          shinyalert("Error!",
+            text = HTML(paste0(
+              "<i> Error: ", vent_all, "</i>", "<br>",
+              "<b>Do you want to send an error report to the developers?</b>"
+            )),
+            type = "error",
+            html = TRUE,
+            confirmButtonText = "Yes", showCancelButton = TRUE,
+            cancelButtonText = "No", callbackR = modalCallback
           )
-        )
+        } else {
+          output$summarized_dat <- renderDT(vent_all$dat_sml,
+            filter = "top",
+            selection = "none",
+            server = F,
+            editable = F,
+            # fillContainer = FALSE,
+            options = list(
+              pageLength = 12,
+              autoWidth = TRUE
+            )
+          )
 
-        # show save summary button
-        p_hide$save_summary <- 1
+          # show save summary button
+          p_hide$save_summary <- 1
 
-        if (input$tutorial == TRUE) {
-          showModal(modalDialog(
-            title = "Tutorial",
-            "Now you can save the summary by pressing the button below or also,
+          if (input$tutorial == TRUE) {
+            showModal(modalDialog(
+              title = "Tutorial",
+              "Now you can save the summary by pressing the button below or also,
             plot the data by selecting the 'plots' tab on the top left of the screen.",
-            footer = modalButton("OK"),
-            size = "m",
-            easyClose = TRUE
-          ))
-        }
+              footer = modalButton("OK"),
+              size = "m",
+              easyClose = TRUE
+            ))
+          }
 
-        # choices tab plots
-        measure_choices <- c("ALL", as.character(levels(vent_all$dat_vent$measure)))
-        updateSelectInput(session, "measures",
-          choices = measure_choices
-        )
+          # choices tab plots
+          measure_choices <- c("ALL", as.character(levels(vent_all$dat_vent$measure)))
+          updateSelectInput(session, "measures",
+            choices = measure_choices
+          )
+        }
       }
     }
   )
@@ -712,63 +740,81 @@ server <- function(input, output, session) {
             filter_vals = FALSE
           )
         } else {
-          plots <- session_plots(sess1,
-            path = NULL, inter = FALSE,
-            vent_stat = input$stat_plot, bin = input$bin_plot,
-            measure = measure,
-            fsave = FALSE
-          )
-        }
-        
-
-        # thanks mr flick
-        Map(function(x) {
-          tab_n <- rc_tabs()
-          tab_n <- tab_n + 1
-          rc_tabs(tab_n)
-          title_t <- paste(x$data$subj[1], input$stat_plot, sep = " ")
-          plot_subj <- paste(x$data$subj[1],
-            input$stat_plot,
-            input$bin_plot,
-            input$baseline,
-            paste(measure, collapse = "_"),
-            tab_n,
-            sep = "_"
-          )
-          output[[plot_subj]] <- renderPlot({
-            x
-          })
-
-          appendTab(
-            inputId = "plots_in_plots",
-            tabPanel(
-              title = title_t,
-              plotOutput(plot_subj) %>% withSpinner()
+          plots <-
+            tryCatch(session_plots(sess1,
+              path = NULL, inter = FALSE,
+              vent_stat = input$stat_plot, bin = input$bin_plot,
+              measure = measure,
+              fsave = FALSE),
+              error = function(c) conditionMessage(c)
             )
-          )
-        }, plots)
-        rc_plots(plots)
+        }
 
-        if (input$tutorial2 == TRUE) {
-          if (demo_imp() == "imp") {
-            showModal(modalDialog(
-              title = "Tutorial",
-              "Click on the tabs with the subject name to see the graphs.
-          You can save the last plots rendered by clicking on the save button!",
-              footer = modalButton("OK"),
-              size = "m",
-              easyClose = TRUE
-            ))
-          } else {
-            showModal(modalDialog(
-              title = "Tutorial",
-              "Click on the tabs with the subject name to see the graphs.
-               The data might look a little bit flat...that is because they are indeed random-normal values
-               created with the function 'runif'. If you want real data, you got to do the experiment yourself!",
-              footer = modalButton("OK"),
-              size = "m",
-              easyClose = TRUE
-            ))
+        # if error---
+        if (is.character(session_plots)) {
+          shinyalert("Error!",
+            text = HTML(paste0(
+              "<i> Error: ", session_plots, "</i>", "<br>",
+              "<b>Do you want to send an error report to the developers?</b>"
+            )),
+            type = "error",
+            html = TRUE,
+            confirmButtonText = "Yes", showCancelButton = TRUE,
+            cancelButtonText = "No", callbackR = modalCallback
+          )
+        } else {
+
+
+
+          # thanks mr flick
+          Map(function(x) {
+            tab_n <- rc_tabs()
+            tab_n <- tab_n + 1
+            rc_tabs(tab_n)
+            title_t <- paste(x$data$subj[1], input$stat_plot, sep = " ")
+            plot_subj <- paste(x$data$subj[1],
+              input$stat_plot,
+              input$bin_plot,
+              input$baseline,
+              paste(measure, collapse = "_"),
+              tab_n,
+              sep = "_"
+            )
+            output[[plot_subj]] <- renderPlot({
+              x
+            })
+
+            appendTab(
+              inputId = "plots_in_plots",
+              tabPanel(
+                title = title_t,
+                plotOutput(plot_subj) %>% withSpinner()
+              )
+            )
+          }, plots)
+          rc_plots(plots)
+
+          if (input$tutorial2 == TRUE) {
+            if (demo_imp() == "imp") {
+              showModal(modalDialog(
+                title = "Tutorial",
+                "Click on the tabs with the subject name to see the graphs.
+                  You can save the last plots rendered by clicking on the save button!",
+                footer = modalButton("OK"),
+                size = "m",
+                easyClose = TRUE
+              ))
+            } else {
+              showModal(modalDialog(
+                title = "Tutorial",
+                "Click on the tabs with the subject name to see the graphs.
+                       The data might look a little bit flat...that is because they are indeed random-normal values
+                       created with the function 'runif'. If you want real data, you got to do the experiment yourself!",
+                footer = modalButton("OK"),
+                size = "m",
+                easyClose = TRUE
+              ))
+            }
           }
         }
       }
@@ -785,8 +831,6 @@ server <- function(input, output, session) {
       dev.off()
     }
   )
-
-  # https://stackoverflow.com/questions/43663352/r-count-shiny-download-button-clicks
 }
 
 shinyApp(ui = ui, server = server)

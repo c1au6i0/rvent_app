@@ -67,10 +67,17 @@ upload_snapshot <- function(others = NULL) {
 
 modalCallback <- function(value) {
   if (value == TRUE) {
-    newfolder <- upload_snapshot()
+    withProgress(
+    newfolder <- upload_snapshot(),
+    message = "Sending data...please wait")
     mail_text <- paste0("An error occured. Check the error report at ", newfolder)
     send_email(mail_text = mail_text)
-}}
+    js$reset()
+  } else {
+    js$reset()
+  }
+  
+  }
 
 
 
