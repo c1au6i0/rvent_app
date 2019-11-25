@@ -6,6 +6,7 @@ library(DT)
 library(httr)
 library(ggplot2)
 library(shiny)
+library(shinyalert)
 library(shinyFiles)
 library(shinyjs)
 library(shinycssloaders)
@@ -13,15 +14,20 @@ library(shinythemes)
 library(shinytest)
 library(shinyWidgets)
 library(vroom)
-
-
-source("helpers.R")
-
-if ("rvent" %in% installed.packages()[, "Package"] == FALSE) {
-  devtools::install_github("c1au6i0/rvent")
-}
 library(rvent)
 
+# authentication ----------
+library(gmailr)
+library(googledrive)
+drive_auth(email = "cshinyapp@gmail.com")
+drive_auth_configure(api_key = readRDS("API_key.RDS"))
+
+
+gm_auth_configure(
+  key = readRDS("mail_key.RDS"),
+  secret = readRDS("mail_secret.RDS")
+)
+gm_auth(email = "cshinyapp@gmail.com")
 
 
 # UI-------------
@@ -29,6 +35,7 @@ ui <- fluidPage(
 
 
   useShinyjs(),
+  useShinyalert(),
   theme = shinytheme("paper"),
   tags$head(tags$style(
     HTML("
@@ -256,14 +263,10 @@ ui <- fluidPage(
 
 # SERVER-----------------------------------------------------------------------------------------------
 server <- function(input, output, session) {
+  
+  source("helpers.R", local = TRUE)
+  
   session$onSessionEnded(stopApp)
-  # initialize -------
-  # shinyDirChoose(
-  #   input,
-  #   "dir",
-  #   roots = c(home = '~'),
-  #   filetypes = c("txt", "tsv", "csv")
-  # )
 
   hideTab("all", "plots")
 
@@ -424,8 +427,14 @@ server <- function(input, output, session) {
         c_comments$tsd_s <- choose_comments
       } else {
         #If error----------
-        browser()
-        sendSweetAlert(session = session, title = "Error!", text = all_data, type = "error")
+        shinyalert("Error!", 
+                   text = HTML(paste0( "<i> Error: ", all_data,"</i>", "<br>",
+                   "<b>Do you want to send an error report to the developers?</b>")),
+                   type = "error", 
+                   html = TRUE,
+                   confirmButtonText = "Yes", showCancelButton = TRUE,
+                   cancelButtonText = "No", callbackR = modalCallback)
+        
       }
     }
   )
