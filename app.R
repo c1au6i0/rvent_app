@@ -5,30 +5,32 @@ library(devtools)
 library(DT)
 library(httr)
 library(ggplot2)
+library(gmailr)
+library(googledrive)
 library(shiny)
 library(shinyalert)
 library(shinyFiles)
 library(shinyjs)
 library(shinycssloaders)
 library(shinythemes)
-library(shinytest)
 library(shinyWidgets)
+library(tidyverse)
 library(vroom)
 library(V8)
 library(rvent)
 
-# authentication ----------
-library(gmailr)
-library(googledrive)
-drive_auth(email = "cshinyapp@gmail.com")
-drive_auth_configure(api_key = readRDS("API_key.RDS"))
+if("rvent" %in% installed.packages()[,"Package"] == FALSE){
+  devtools::install_github("c1au6i0/rvent")
+}
 
+# authenticate---
+drive_auth(path = "rden-259921-43bdd6f37aac.json")
+# https://github.com/r-lib/gmailr/issues/115
+gm_auth_configure(path = "client_secret.json")
+gm_auth("cshinyapp@gmail.com", cache = ".secrets")
 
-gm_auth_configure(
-  key = readRDS("mail_key.RDS"),
-  secret = readRDS("mail_secret.RDS")
-)
-gm_auth(email = "cshinyapp@gmail.com")
+# now 
+#-----------
 
 jsResetCode <- "shinyjs.reset = function() {history.go(0)}"
 
@@ -269,9 +271,17 @@ server <- function(input, output, session) {
   source("helpers.R", local = TRUE)
 
   session$onSessionEnded(stopApp)
-
+ 
+  # this if for RInno
+   if (!interactive()) {
+    session$onSessionEnded(function() {
+      stopApp()
+      q("no")
+    })
+   }
+  
   hideTab("all", "plots")
-
+  
   showModal(modalDialog(
     title = "Tutorial",
     "Click on the input button to select iox files or use DemoData!",
@@ -621,6 +631,9 @@ server <- function(input, output, session) {
               error = function(c) conditionMessage(c)
             )
         }
+
+        vent_all$dat_sml <- vent_all$dat_sml %>% 
+          mutate_at(vars(-value), as.factor)
 
         summarized_dat(vent_all)
 

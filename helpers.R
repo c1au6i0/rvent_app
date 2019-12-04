@@ -1,3 +1,4 @@
+# authentication ----------
 
 # send email ------------------------
 send_email <- function(mail_text) {

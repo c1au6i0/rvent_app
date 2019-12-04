@@ -5,6 +5,6 @@ account: rden
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1485847
-bundleId: 2611505
+bundleId: 2617854
 url: https://rden.shinyapps.io/rvent_app/
-when: 1574494509.27639
+when: 1574738191.15615
