@@ -23,13 +23,7 @@ if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
 }
 
-# authenticate---
-drive_auth(path = "rden-259921-43bdd6f37aac.json")
-# https://github.com/r-lib/gmailr/issues/115
-gm_auth_configure(path = "client_secret.json")
-gm_auth("cshinyapp@gmail.com", cache = ".secrets")
 
-# now 
 #-----------
 
 jsResetCode <- "shinyjs.reset = function() {history.go(0)}"
@@ -270,7 +264,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   source("helpers.R", local = TRUE)
 
-  session$onSessionEnded(stopApp)
+  # session$onSessionEnded(stopApp)
  
   # this if for RInno
    if (!interactive()) {
@@ -423,13 +417,12 @@ server <- function(input, output, session) {
       if (is.character(all_data)) {
         shinyalert("Error!",
           text = HTML(paste0(
-            "<i> Error: ", all_data, "</i>", "<br>",
-            "<b>Do you want to send an error report to the developers?</b>"
+            "<i> Error: ", all_data, "</i>", "<br>"
           )),
           type = "error",
           html = TRUE,
-          confirmButtonText = "Yes", showCancelButton = TRUE,
-          cancelButtonText = "No", callbackR = modalCallback
+          confirmButtonText = "Yes", showCancelButton = FALSE,
+        callbackR = modalCallback
         )
       } else {
         if (input$tutorial == TRUE) {
@@ -462,13 +455,6 @@ server <- function(input, output, session) {
     },
     handlerExpr = {
 
-      id_data <- "15Y2hJuczpqF4q2Op0swfMbqBwPDH418G"
-
-      withProgress(
-        drive_download(file = as_id(id_data), "all_data.rds", overwrite = TRUE),
-        message = "Loading the data...please wait"
-      )
-      id_data <- "15Y2hJuczpqF4q2Op0swfMbqBwPDH418G"
 
       all_data <- readRDS("all_data.rds")
       
@@ -641,13 +627,12 @@ server <- function(input, output, session) {
         if (is.character(sess1) | is.character(summarize_vent)) {
           shinyalert("Error!",
             text = HTML(paste0(
-              "<i> Error: ", vent_all, "</i>", "<br>",
-              "<b>Do you want to send an error report to the developers?</b>"
+              "<i> Error: ", vent_all, "</i>", "<br>"
             )),
             type = "error",
             html = TRUE,
-            confirmButtonText = "Yes", showCancelButton = TRUE,
-            cancelButtonText = "No", callbackR = modalCallback
+            confirmButtonText = "Yes", showCancelButton = FALSE,
+            callbackR = modalCallback
           )
         } else {
           output$summarized_dat <- renderDT(vent_all$dat_sml,
@@ -767,13 +752,12 @@ server <- function(input, output, session) {
         if (is.character(session_plots)) {
           shinyalert("Error!",
             text = HTML(paste0(
-              "<i> Error: ", session_plots, "</i>", "<br>",
-              "<b>Do you want to send an error report to the developers?</b>"
+              "<i> Error: ", session_plots, "</i>", "<br>"
             )),
             type = "error",
             html = TRUE,
-            confirmButtonText = "Yes", showCancelButton = TRUE,
-            cancelButtonText = "No", callbackR = modalCallback
+            confirmButtonText = "Yes", showCancelButton = FALSE,
+            callbackR = modalCallback
           )
         } else {
 
