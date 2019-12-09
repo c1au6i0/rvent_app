@@ -420,6 +420,7 @@ server <- function(input, output, session) {
       )
 
       # if error--
+
       if (is.character(all_data)) {
         shinyalert("Error!",
           text = HTML(paste0(
@@ -533,7 +534,7 @@ server <- function(input, output, session) {
 
         c_comments$tsd_sf <- tsd_sf
         if (sum(is.na(c_comments$tsd_sf)) > 0) {
-          output$tsd_sf <- renderDT(tsd_sf, selection = "none", server = F, editable = T)
+          output$tsd_sf <- renderDT(tsd_sf, selection = "none", server = T, editable = T)
 
 
           if (input$tutorial == TRUE) {
