@@ -270,7 +270,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   source("helpers.R", local = TRUE)
 
-  session$onSessionEnded(stopApp)
+  # session$onSessionEnded(stopApp)
  
   # this if for RInno
    if (!interactive()) {
