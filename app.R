@@ -17,13 +17,18 @@ library(shinyWidgets)
 library(tidyverse)
 library(vroom)
 library(V8)
-library(rvent)
+
 
 if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
 }
 
+if(packageVersion("rvent") != "0.2.1.1000") {
+  devtools::install_github("c1au6i0/rvent")
+}
 
+library(rvent)
+   
 #-----------
 
 jsResetCode <- "shinyjs.reset = function() {history.go(0)}"
