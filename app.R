@@ -97,17 +97,12 @@ ui <- fluidPage(
         # side panel------------
         sidebarPanel(
           width = 6,
-          wellPanel(
-            div(
-              style = "display: inline-block;vertical-align:top;",
-              switchInput("tutorial", label = "Tutorial", value = TRUE)
-            ),
-            div(
-              style = "display: inline-block;vertical-align:top; float:right;",
-              actionButton("license", label = "LICENSE", width = "200px")
-            )
-          ),
-
+          div(
+            style = "display: inline-block;vertical-align: center;",
+            switchInput("tutorial", label = "Tutorial", value = TRUE)),
+          div(
+            style = "display: inline-block;vertical-align: center; float: right;",
+            actionButton("license", label = "about", style = "text-transform: lowercase; font-style: italic;")),
 
           fileInput("iox_files",
             label = NULL,
