@@ -63,11 +63,11 @@ ui <- fluidPage(
     }
     
     input { 
-    text-align: center; 
+        text-align: center; 
     }
     
     input:-moz-placeholder { 
-    text-align:right; 
+        text-align:right; 
     }
 
     .progress {
@@ -77,12 +77,13 @@ ui <- fluidPage(
     
     
     #bin {
-            text-align: center;
+        text-align: center;
     }
     
     #save_summary {
         float:center !important;
     }
+    
     
          ")
   )),
@@ -98,25 +99,23 @@ ui <- fluidPage(
         # side panel------------
         sidebarPanel(
           width = 6,
-          wellPanel(
-            div(
-              style = "display: inline-block;vertical-align:top;",
-              switchInput("tutorial", label = "Tutorial", value = TRUE)
-            ),
-            div(
-              style = "display: inline-block;vertical-align:top; float:right;",
-              actionButton("license", label = "LICENSE", width = "200px")
-            )
+
+ 
+          div(
+              style = "display: inline-block;vertical-align: center;",
+              switchInput("tutorial", label = "Tutorial", value = TRUE)),
+          div(
+               style = "display: inline-block;vertical-align: center; float: right;",
+              actionButton("license", label = "about", style = "text-transform: lowercase; font-style: italic;")
           ),
-
-
+          
           fileInput("iox_files",
             label = NULL,
-            buttonLabel = "Input files",
+            buttonLabel = "Import Files",
             multiple = TRUE,
             accept = c("txt", "tsv", "csv"),
             placeholder = "0 upload",
-            width = "50%"
+            width = "70%"
           ),
 
 
