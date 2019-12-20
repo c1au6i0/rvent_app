@@ -25,6 +25,8 @@ A tutorial is available within the rvent_app.
 The rvent_app is hosted here:
 https://rden.shinyapps.io/rvent_app/
 
+A Windows installer created using {[DesktopDeployR](https://github.com/wleepang/DesktopDeployR)} and [`inno_setup`](http://www.jrsoftware.org/isinfo.php) can be dowlonaded [here](https://1drv.ms/u/s!Am3aUTxhPMS8iYRlAMyxO8UPvIYW2A?e=WqEbGE).
+
 ### Accepted files and recording
 
 The `rvent_app` extract some of the metadata from the subject name and comments provide in the output file. Thus, it is important to follow some rules for recording sessions.
@@ -58,7 +60,7 @@ rat1 2 3 milk
 ```
 **If dose or unit are not inserted**, the rvent_app will ask you to fill that info.
 
-Note that subject are expected to get one injection per session. 
+Note that subjects are expected to get one injection per session. 
 
 ### Example file
 

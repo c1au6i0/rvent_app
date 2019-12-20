@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![](https://img.shields.io/badge/devel%20version-0.2.0.9000-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
+[![](https://img.shields.io/badge/devel%20version-0.2.1.9000-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
 <!-- badges: end -->
 
 The rvent\_app is a shiny application developed to import, bin and
@@ -17,6 +17,11 @@ functions of the [rvent package](https://github.com/c1au6i0/rvent).
 
 A tutorial is available within the rvent\_app. The rvent\_app is hosted
 here: <https://rden.shinyapps.io/rvent_app/>
+
+A Windows installer created using
+{[DesktopDeployR](https://github.com/wleepang/DesktopDeployR)} and
+[`inno_setup`](http://www.jrsoftware.org/isinfo.php) can be dowlonaded
+[here](https://1drv.ms/u/s!Am3aUTxhPMS8iYRlAMyxO8UPvIYW2A?e=WqEbGE).
 
 ### Accepted files and recording
 
@@ -56,7 +61,7 @@ milk:
 **If dose or unit are not inserted**, the rvent\_app will ask you to
 fill that info.
 
-Note that subject are expected to get one injection per session.
+Note that subjects are expected to get one injection per session.
 
 ### Example file
 
