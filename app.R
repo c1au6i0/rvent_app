@@ -373,8 +373,8 @@ server <- function(input, output, session) {
         title = "MIT License",
         html = TRUE,
         text =
-          HTML("Copyright (c) 2019 Claudio Zanettini <br> 
-                                   <a href=\"https://github.com/c1au6i0/rvent_app/blob/master/LICENSE.md\"> LICENSE </a>"),
+          HTML("Copyright (c) 2019 Claudio Zanettini (v.0.2.1.1000) <br> 
+               <a href=\"https://github.com/c1au6i0/rvent_app/blob/master/LICENSE.md\"> LICENSE </a>"),
         width = "200px"
       )
     }
