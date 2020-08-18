@@ -1,6 +1,9 @@
-# rvent_app v0.2.1.100
+# rvent_app v0.2.1.200
 # Baltimore (MD), November 2019
 # Claudio Zanettini
+library(renv)
+renv::restore()
+
 library(devtools)
 library(DT)
 library(httr)
@@ -19,11 +22,12 @@ library(vroom)
 library(V8)
 
 
+
 if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
 }
 
-if(packageVersion("rvent") != "0.2.1.1000") {
+if(packageVersion("rvent") != "0.2.1.2000") {
   devtools::install_github("c1au6i0/rvent")
 }
 
