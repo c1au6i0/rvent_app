@@ -2,6 +2,7 @@
 # Baltimore (MD), November 2019
 # Claudio Zanettini
 library(renv)
+renv::init()
 renv::restore()
 
 library(devtools)
