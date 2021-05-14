@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![](https://img.shields.io/badge/devel%20version-0.2.1.9000-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
+[![](https://img.shields.io/badge/devel%20version-0.2.1-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
 <!-- badges: end -->
 
 The rvent\_app is a shiny application developed to import, bin and
