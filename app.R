@@ -1,9 +1,9 @@
-# rvent_app v0.2.1.200
+# rvent_app v0.2.4.200
 # Baltimore (MD), November 2019
 # Claudio Zanettini
 library(renv)
-renv::init()
-renv::restore()
+# renv::init()
+# renv::restore()
 
 library(devtools)
 library(DT)
@@ -28,7 +28,7 @@ if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
 }
 
-if(packageVersion("rvent") != "0.2.1.2000") {
+if(packageVersion("rvent") != "0.2.4.2000") {
   devtools::install_github("c1au6i0/rvent")
 }
 
@@ -36,15 +36,15 @@ library(rvent)
    
 #-----------
 
-jsResetCode <- "shinyjs.reset = function() {history.go(0)}"
+jsResetCode <- "shinyjs.reset = function() {history.go(0)}"  
 
 # UI-------------
 ui <- fluidPage(
 
 
   useShinyjs(),
-  useShinyalert(),
-  extendShinyjs(text = jsResetCode),
+  # useShinyalert(),
+  # extendShinyjs(text = jsResetCode, functions = "reset"),
   theme = shinytheme("paper"),
   tags$head(tags$style(
     HTML("
