@@ -1,21 +1,21 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# rvent\_app
+# rvent_app
 
 <!-- badges: start -->
 
-[![](https://img.shields.io/badge/devel%20version-0.2.1.9000-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
+[![](https://img.shields.io/badge/devel%20version-0.2.5-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
 <!-- badges: end -->
 
-The rvent\_app is a shiny application developed to import, bin and
+The rvent_app is a shiny application developed to import, bin and
 summarized session files obtained with the [SCIREQ
 pletysmograph](https://www.scireq.com/). Under the hood it uses
 functions of the [rvent package](https://github.com/c1au6i0/rvent).
 
 ## App
 
-A tutorial is available within the rvent\_app. The rvent\_app is hosted
+A tutorial is available within the rvent_app. The rvent_app is hosted
 here: <https://rden.shinyapps.io/rvent_app/>
 
 A Windows installer created using
@@ -58,8 +58,8 @@ milk:
     rat1_2_3_milk 3 mg/kg
     rat1 2 3 milk
 
-**If dose or unit are not inserted**, the rvent\_app will ask you to
-fill that info.
+**If dose or unit are not inserted**, the rvent_app will ask you to fill
+that info.
 
 Note that subjects are expected to get one injection per session.
 

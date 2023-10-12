@@ -14,7 +14,7 @@ knitr::opts_chunk$set(
 # rvent_app
 
 <!-- badges: start -->
-[![](https://img.shields.io/badge/devel%20version-0.2.2-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
+[![](https://img.shields.io/badge/devel%20version-0.2.5-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
 <!-- badges: end -->
 
 The rvent_app is a shiny application developed to import, bin and summarized session files obtained with the [SCIREQ pletysmograph](https://www.scireq.com/). Under the hood it uses functions of the  [rvent package](https://github.com/c1au6i0/rvent).

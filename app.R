@@ -1,5 +1,5 @@
-# rvent_app v0.2.4.200
-# Baltimore (MD), November 2019
+# rvent_app v0.2.5
+# Baltimore (MD), November 2019 (first release)
 # Claudio Zanettini
 library(renv)
 # renv::init()
@@ -28,7 +28,7 @@ if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
 }
 
-if(packageVersion("rvent") != "0.2.5.2000") {
+if(packageVersion("rvent") != "0.2.6") {
   devtools::install_github("c1au6i0/rvent")
 }
 
