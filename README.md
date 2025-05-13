@@ -5,7 +5,7 @@
 
 <!-- badges: start -->
 
-[![](https://img.shields.io/badge/devel%20version-0.2.5-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
+[![](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/https://github.com/c1au6i0/rvent_app)
 <!-- badges: end -->
 
 The rvent_app is a shiny application developed to import, bin and
@@ -17,11 +17,6 @@ functions of the [rvent package](https://github.com/c1au6i0/rvent).
 
 A tutorial is available within the rvent_app. The rvent_app is hosted
 here: <https://rden.shinyapps.io/rvent_app/>
-
-A Windows installer created using
-{[DesktopDeployR](https://github.com/wleepang/DesktopDeployR)} and
-[`inno_setup`](http://www.jrsoftware.org/isinfo.php) can be dowlonaded
-[here](https://1drv.ms/u/s!Am3aUTxhPMS8iYRlAMyxO8UPvIYW2A?e=WqEbGE).
 
 ### Accepted files and recording
 
@@ -68,3 +63,9 @@ Note that subjects are expected to get one injection per session.
 This is an example of a [recording
 file](https://1drv.ms/t/s!Am3aUTxhPMS8iM43UVMJXhO4mNCecw?e=ANMwWP)
 (containing randomly generated data).
+
+**!Windows Installer Not Supported Anymore!!!**: A Windows installer
+created using
+{[DesktopDeployR](https://github.com/wleepang/DesktopDeployR)} and
+[`inno_setup`](http://www.jrsoftware.org/isinfo.php) can be dowlonaded
+[here](https://1drv.ms/u/s!Am3aUTxhPMS8iYRlAMyxO8UPvIYW2A?e=WqEbGE).

@@ -28,7 +28,7 @@ if("rvent" %in% installed.packages()[,"Package"] == FALSE){
   devtools::install_github("c1au6i0/rvent")
 }
 
-if(packageVersion("rvent") != "0.2.6") {
+if(packageVersion("rvent") != "0.3.0") {
   devtools::install_github("c1au6i0/rvent")
 }
 
